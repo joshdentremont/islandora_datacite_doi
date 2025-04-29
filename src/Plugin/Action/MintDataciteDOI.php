@@ -105,12 +105,14 @@ class MintDataciteDOI extends MintIdentifier {
    * @inheritDoc
    */
   protected function mint(): string {
-   $doi = $this->getIdentifierFromResponse($this->doiMetadataRequest());
-   $entity = $this->getEntity();
-   if ($entity->get('status')->getString()) {
-     $this->registerDoiUrlRequest();
-   }
-   return $doi;
+    $data = $this->getFieldData();
+    $doi = $this->getIdentifierFromResponse($this->doiMetadataRequest($data));
+
+    $entity = $this->getEntity();
+    if ($entity->get('status')->getString()) {
+      $this->registerDoiUrlRequest($doi);
+    }
+    return $doi;
   }
 
   /**
@@ -130,7 +132,5 @@ class MintDataciteDOI extends MintIdentifier {
     }
     throw new BadMessageException("DOI not found in response body.");
   }
-
-
 
 }
