@@ -71,6 +71,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['title'],
+      '#required' => TRUE,
     ];
     $form['author'] = [
       '#title' => $this->t('Author'),
@@ -79,6 +80,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['author'],
+      '#required' => TRUE,
     ];
     $form['ror'] = [
       '#title' => $this->t('ROR'),
@@ -95,6 +97,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['publisher'],
+      '#required' => TRUE,
     ];
     $form['year'] = [
       '#title' => $this->t('Year'),
@@ -103,6 +106,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['year'],
+      '#required' => TRUE,
     ];
     $form['rtypeGeneral'] = [
       '#title' => $this->t('Resource Type General'),
@@ -111,6 +115,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['rtypeGeneral'],
+      '#required' => TRUE,
     ];
     $form['rtype'] = [
       '#title' => $this->t('Resource Type'),
