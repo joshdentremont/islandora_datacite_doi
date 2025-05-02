@@ -137,40 +137,41 @@ trait DataciteDOITrait {
     ];
 
     // Create XML for Datacite
-    $body = '<resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://datacite.org/schema/kernel-4" xsi:schemaLocation="http://datacite.org/schema/kernel-4 https://schema.datacite.org/meta/kernel-4/metadata.xsd">';
+    $body = new \SimpleXMLElement('<resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://datacite.org/schema/kernel-4" xsi:schemaLocation="http://datacite.org/schema/kernel-4 https://schema.datacite.org/meta/kernel-4/metadata.xsd"></resource>');
 
     // DOI prefix
-    $body .= '<identifier identifierType="DOI">' . $this->getPrefix() . '</identifier>';
+    $body->addChild('identifier', $this->getPrefix())->addAttribute('identifierType', 'DOI');
 
     // Creator
-    $body .= '<creators><creator><creatorName nameType="Personal">' . $data["datacite.author"] . '</creatorName></creator></creators>';
+    $body->addChild('creators')->addChild('creator')->addChild('creatorName', $data["datacite.author"])->addAttribute('nameType', 'Personal');
 
     // Title
-    $body .= '<titles><title>' . $data["datacite.title"] . '</title></titles>';
+    $body->addChild('titles')->addChild('title', $data["datacite.title"]);
 
     // Publisher
-    $ror = '';
-    if (array_key_exists("datacite.ror", $data))
-      $ror = ' publisherIdentifier="' . $data["datacite.ror"] . '" publisherIdentifierScheme="ROR" schemeURI="https://ror.org/"';
-    $body .= '<publisher' . $ror . '>' . $data["datacite.publisher"] . '</publisher>';
+    $publisher = $body->addChild('publisher', $data["datacite.publisher"]);
+
+    // ROR
+    if (array_key_exists("datacite.ror", $data)) {
+      $publisher->addAttribute('publisherIdentifier', $data["datacite.ror"]);
+      $publisher->addAttribute('publisherIdentifierScheme', 'ROR');
+      $publisher->addAttribute('schemeURI', 'https://ror.org/');
+    }
 
     // Publication Year
     // If string or EDTF is given, extract just year swapping Xs for 0s
     $years = array();
     preg_match('/\b[\dX]{4}\b/', $data["datacite.year"], $years);
-    $body .= '<publicationYear>' . $years[0] . '</publicationYear>';
+    $body->addChild('publicationYear', $years[0]);
 
     // Resource Type
     // Set to other if not in datacite's list
     $rtypeGeneral = $data["datacite.rtypeGeneral"];
     if (!in_array($rtypeGeneral, $availableTypes))
       $rtypeGeneral = "Other";
-    $body .= '<resourceType resourceTypeGeneral="' . $rtypeGeneral . '">' . $data["datacite.rtype"] . '</resourceType>';
+    $body->addChild('resourceType', $data["datacite.rtype"])->addAttribute('resourceTypeGeneral', $rtypeGeneral);
 
-    // End xml
-    $body .= '</resource>';
-
-    return new Request($this->getRequestType(), $this->getUri(), $this->getRequestHeaders(), $body);
+    return new Request($this->getRequestType(), $this->getUri(), $this->getRequestHeaders(), $body->ASXML());
   }
 
   /**
