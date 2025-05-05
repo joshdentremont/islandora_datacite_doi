@@ -81,7 +81,7 @@ class DataciteDataProfile extends DataProfileBase {
     ];
     $form['author'] = [
       '#title' => $this->t('Author(s)'),
-      '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has field_orcid, that value is automatically pulled as well.'),
+      '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
@@ -90,7 +90,7 @@ class DataciteDataProfile extends DataProfileBase {
     ];
     $form['publisher'] = [
       '#title' => $this->t('Publisher'),
-      '#description' => $this->t('Name of the publisher. If publisher is a taxonomy term and the taxonomy has field_ror, that value is automatically pulled as well.'),
+      '#description' => $this->t('Name of the publisher. If publisher is a taxonomy term and the taxonomy has a URL field called field_ror, that value is automatically pulled as well.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
@@ -108,7 +108,7 @@ class DataciteDataProfile extends DataProfileBase {
     ];
     $form['rtypeGeneral'] = [
       '#title' => $this->t('Resource Type General'),
-      '#description' => $this->t('General resource type. If your selected type is not in Datacite\'s list, it will be set to "Other".'),
+      '#description' => $this->t('General resource type. If your selected type is not in DataCite\'s list, it will be set to "Other".'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
@@ -125,7 +125,7 @@ class DataciteDataProfile extends DataProfileBase {
     ];
     $form['hostInstitution'] = [
       '#title' => $this->t('Hosting Institution'),
-      '#description' => $this->t('Name of the host institution. If publisher is a taxonomy term and the taxonomy has field_ror, that value is automatically pulled as well.'),
+      '#description' => $this->t('Name of the host institution. If host is a taxonomy term and the taxonomy has a URL field called field_ror, that value is automatically pulled as well.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
@@ -133,7 +133,7 @@ class DataciteDataProfile extends DataProfileBase {
     ];
     $form['supervisor'] = [
       '#title' => $this->t('Thesis Supervisor(s)'),
-      '#description' => $this->t('Name of the thesis/dissertation supervisor(s). If supervisor is a taxonomy term and the taxonomy has field_orcid, that value is automatically pulled as well.'),
+      '#description' => $this->t('Name of the thesis/dissertation supervisor(s). If supervisor is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
@@ -165,7 +165,7 @@ class DataciteDataProfile extends DataProfileBase {
     ];
     $form['abstract'] = [
       '#title' => $this->t('Abstract'),
-      '#description' => $this->t('A description with the type of abstract'),
+      '#description' => $this->t('A description with it\'s type set to abstract.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
