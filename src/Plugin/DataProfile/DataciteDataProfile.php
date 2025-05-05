@@ -39,6 +39,7 @@ class DataciteDataProfile extends DataProfileBase {
     foreach ($data as $field => $value) {
       $datacite_data["datacite.$field"] = $value;
     }
+
     return $datacite_data;
   }
 
@@ -49,11 +50,16 @@ class DataciteDataProfile extends DataProfileBase {
     return [
       'title' => NULL,
       'author' => NULL,
-      'ror' => NULL,
       'publisher' => NULL,
       'year' => NULL,
       'rtypeGeneral' => NULL,
       'rtype' => NULL,
+      'hostInstitution' => NULL,
+      'supervisor' => NULL,
+      'dateIssued' => NULL,
+      'language' => NULL,
+      'rights' => NULL,
+      'abstract' => NULL,
     ];
   }
 
@@ -74,25 +80,17 @@ class DataciteDataProfile extends DataProfileBase {
       '#required' => TRUE,
     ];
     $form['author'] = [
-      '#title' => $this->t('Author'),
-      '#description' => $this->t('Author of the object.'),
+      '#title' => $this->t('Author(s)'),
+      '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['author'],
       '#required' => TRUE,
     ];
-    $form['ror'] = [
-      '#title' => $this->t('ROR'),
-      '#description' => $this->t('ROR of the publisher.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['ror'],
-    ];
     $form['publisher'] = [
       '#title' => $this->t('Publisher'),
-      '#description' => $this->t('Name of the publisher.'),
+      '#description' => $this->t('Name of the publisher. If publisher is a taxonomy term and the taxonomy has field_ror, that value is automatically pulled as well.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
@@ -125,6 +123,54 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['rtype'],
     ];
+    $form['hostInstitution'] = [
+      '#title' => $this->t('Hosting Institution'),
+      '#description' => $this->t('Name of the host institution. If publisher is a taxonomy term and the taxonomy has field_ror, that value is automatically pulled as well.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostInstitution'],
+    ];
+    $form['supervisor'] = [
+      '#title' => $this->t('Thesis Supervisor(s)'),
+      '#description' => $this->t('Name of the thesis/dissertation supervisor(s). If supervisor is a taxonomy term and the taxonomy has field_orcid, that value is automatically pulled as well.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['supervisor'],
+    ];
+    $form['dateIssued'] = [
+      '#title' => $this->t('Date Issued'),
+      '#description' => $this->t('Issue Date for the object. X\'s in date will be reaplced with 0\'s. If the date still does not match the format YYYY-MM-DD, the first 4 digit number will be used, and the full text of this field will be added to the dateInformation attribute.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['dateIssued'],
+    ];
+    $form['language'] = [
+      '#title' => $this->t('Language'),
+      '#description' => $this->t('The primary language of the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['language'],
+    ];
+    $form['rights'] = [
+      '#title' => $this->t('Rights'),
+      '#description' => $this->t('Rights information for the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['rights'],
+    ];
+    $form['abstract'] = [
+      '#title' => $this->t('Abstract'),
+      '#description' => $this->t('A description with the type of abstract'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['abstract'],
+    ];
     return $form;
   }
 
@@ -134,11 +180,17 @@ class DataciteDataProfile extends DataProfileBase {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['title'] = $form_state->getValue('title');
     $this->configuration['author'] = $form_state->getValue('author');
-    $this->configuration['ror'] = $form_state->getValue('ror');
     $this->configuration['publisher'] = $form_state->getValue('publisher');
     $this->configuration['year'] = $form_state->getValue('year');
     $this->configuration['rtypeGeneral'] = $form_state->getValue('rtypeGeneral');
     $this->configuration['rtype'] = $form_state->getValue('rtype');
+    $this->configuration['hostInstitution'] = $form_state->getValue('hostInstitution');
+    $this->configuration['supervisor'] = $form_state->getValue('supervisor');
+    $this->configuration['dateIssued'] = $form_state->getValue('dateIssued');
+    $this->configuration['language'] = $form_state->getValue('language');
+    $this->configuration['rights'] = $form_state->getValue('rights');
+    $this->configuration['abstract'] = $form_state->getValue('abstract');
+
   }
 
 }

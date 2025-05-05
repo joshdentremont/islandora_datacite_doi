@@ -7,6 +7,7 @@ use Drupal\dgi_actions\Plugin\Action\HttpActionMintTrait;
 use Drupal\dgi_actions\Plugin\Action\MintIdentifier;
 use Drupal\dgi_actions\Utility\IdentifierUtils;
 use Drupal\islandora_datacite_doi\Utility\DataciteDOITrait;
+use Drupal\taxonomy\Entity\Term;
 use GuzzleHttp\ClientInterface;
 use http\Exception\BadMessageException;
 use Psr\Http\Message\ResponseInterface;
@@ -93,6 +94,7 @@ class MintDataciteDOI extends MintIdentifier {
       'Content-Type' => 'text/plain;charset=UTF-8',
     ];
   }
+
   /**
    * {@inheritdoc}
    */
@@ -100,6 +102,42 @@ class MintDataciteDOI extends MintIdentifier {
     return 'PUT';
   }
 
+  /**
+   * @inheritDoc
+   */
+  protected function getFieldData(): array {
+
+    $data = [];
+    $data_profile = $this->getIdentifier()->getDataProfile();
+    if ($data_profile) {
+      foreach ($data_profile->getData() as $key => $field) {
+        if ($this->entity->hasField($field)) {
+          $entity_field = $this->entity->get($field);
+          if ($entity_field->isEmpty()) {
+            continue;
+          }
+          else {
+            $data[$key] = $entity_field->getValue();
+            // Add data for taxonomy terms
+            foreach ($data[$key] as &$field_item) {
+              if (array_key_exists('target_id', $field_item)) {
+                $term = Term::load($field_item['target_id']);
+                $field_item['value'] = $term->label();
+                // Pull ROR and ORCID if they exist
+                if ($term && $term->hasField('field_ror') && !$term->get('field_ror')->isEmpty()) {
+                  $field_item['ror'] = $term->get('field_ror')->uri;
+                }
+                if ($term && $term->hasField('field_orcid') && !$term->get('field_orcid')->isEmpty()) {
+                  $field_item['orcid'] = $term->get('field_orcid')->uri;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return $data;
+  }
 
   /**
    * @inheritDoc

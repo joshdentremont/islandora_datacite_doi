@@ -100,6 +100,7 @@ trait DataciteDOITrait {
   }
 
   protected function buildMetadataRequest(array $data) {
+
     // Available resource types from Datacite
     $availableTypes = [
       "Audiovisual",
@@ -143,35 +144,111 @@ trait DataciteDOITrait {
     $body->addChild('identifier', $this->getPrefix())->addAttribute('identifierType', 'DOI');
 
     // Creator
-    $body->addChild('creators')->addChild('creator')->addChild('creatorName', $data["datacite.author"])->addAttribute('nameType', 'Personal');
-
-    // Title
-    $body->addChild('titles')->addChild('title', $data["datacite.title"]);
-
-    // Publisher
-    $publisher = $body->addChild('publisher', $data["datacite.publisher"]);
-
-    // ROR
-    if (array_key_exists("datacite.ror", $data)) {
-      $publisher->addAttribute('publisherIdentifier', $data["datacite.ror"]);
-      $publisher->addAttribute('publisherIdentifierScheme', 'ROR');
-      $publisher->addAttribute('schemeURI', 'https://ror.org/');
+    $creators = $body->addChild('creators');
+    foreach ($data["datacite.author"] as $auth) {
+      $creator = $creators->addChild('creator');
+      $creator->addChild('creatorName', $auth["value"])->addAttribute('nameType', 'Personal');
+      // Add ORCID if available
+      if (array_key_exists("orcid", $auth)) {
+        $id = $creator->addChild('nameIdentifier', $auth["orcid"]);
+        $id->addAttribute('nameIdentifierScheme', 'ORCID');
+        $id->addAttribute('schemeURI', 'https://orcid.org');
+      }
     }
 
+    // Title
+    $body->addChild('titles')->addChild('title', $data["datacite.title"][0]["value"]);
+
+    // Publisher
+    $publisher = $body->addChild('publisher', $data["datacite.publisher"][0]["value"]);
+    // Add ROR if available
+    if (array_key_exists("ror", $data["datacite.publisher"][0])) {
+      $publisher->addAttribute('publisherIdentifier', $data["datacite.publisher"][0]["ror"]);
+      $publisher->addAttribute('publisherIdentifierScheme', 'ROR');
+      $publisher->addAttribute('schemeURI', 'https://ror.org');
+    }
     // Publication Year
     // If string or EDTF is given, extract just year swapping Xs for 0s
     $years = array();
-    preg_match('/\b[\dX]{4}\b/', $data["datacite.year"], $years);
+    preg_match('/\b[\dX]{4}\b/', $data["datacite.year"][0]["value"], $years);
     $body->addChild('publicationYear', $years[0]);
 
     // Resource Type
     // Set to other if not in datacite's list
-    $rtypeGeneral = $data["datacite.rtypeGeneral"];
-    if (!in_array($rtypeGeneral, $availableTypes))
+    $rtypeGeneral = $data["datacite.rtypeGeneral"][0]["value"];
+    if (!in_array($rtypeGeneral, $availableTypes)) {
       $rtypeGeneral = "Other";
-    $body->addChild('resourceType', $data["datacite.rtype"])->addAttribute('resourceTypeGeneral', $rtypeGeneral);
+    }
+    $body->addChild('resourceType', $data["datacite.rtype"][0]["value"])->addAttribute('resourceTypeGeneral', $rtypeGeneral);
 
-    return new Request($this->getRequestType(), $this->getUri(), $this->getRequestHeaders(), $body->ASXML());
+    // The following fields are all optional for Datacite
+
+    // Contributors
+    $contributors = $body->addChild('contributors');
+
+    // Hosting institution
+    if (array_key_exists("datacite.hostInstitution", $data)) {
+      $host = $contributors->addChild('contributor');
+      $host->addAttribute('contributorType', 'HostingInstitution');
+      $host->addChild('contributorName', $data["datacite.hostInstitution"][0]["value"])->addAttribute('nameType', 'Organizational');
+      // Add ROR if available
+      if (array_key_exists("ror", $data["datacite.hostInstitution"][0])) {
+        $id = $host->addChild('nameIdentifier', $data["datacite.hostInstitution"][0]["ror"]);
+        $id->addAttribute('nameIdentifierScheme', 'ROR');
+        $id->addAttribute('schemeURI', 'https://ror.org');
+      }
+    }
+
+    // Thesis Supervisor
+    if (array_key_exists("datacite.supervisor", $data)) {
+      foreach ($data["datacite.supervisor"] as $super) {
+        $supervisor = $contributors->addChild('contributor');
+        $supervisor->addAttribute('contributorType', 'Supervisor');
+        $supervisor->addChild('contributorName', $super["value"])->addAttribute('nameType', 'Personal');
+        // Add ORCID if available
+        if (array_key_exists("orcid", $super)) {
+          $id = $supervisor->addChild('nameIdentifier', $super["orcid"]);
+          $id->addAttribute('nameIdentifierScheme', 'ORCID');
+          $id->addAttribute('schemeURI', 'https://orcid.org');
+        }
+      }
+    }
+
+    // Dates
+    $dates = $body->addChild('dates');
+
+    // Date Issued
+    if (array_key_exists("datacite.dateIssued", $data)) {
+      $di = str_replace('X', '0', $data["datacite.dateIssued"][0]["value"]);
+      $years = array();
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data["datacite.year"][0]["value"])) {
+        preg_match('/\b[\dX]{4}\b/', $di, $years);
+        $di = $years[0];
+      }
+
+      $date = $dates->addChild('date', $di)->addAttribute('dateType', 'Issued');
+      if ($di !== $data["datacite.dateIssued"][0]["value"])
+        $date->addAttribute('dateInformation', $data["datacite.dateIssued"]);
+    }
+
+    // Language
+    if (array_key_exists("datacite.language", $data)) {
+      $body->addChild('language', $data["datacite.language"][0]["value"]);
+    }
+
+    // Rights
+    if (array_key_exists("datacite.rights", $data)) {
+      $body->addchild('rightsList')->addChild('rights', $data["datacite.rights"][0]["value"]);
+    }
+
+    // Descriptions
+    $descriptions = $body->addChild('descriptions');
+
+    // Abstract
+    if (array_key_exists("datacite.abstract", $data)) {
+      $descriptions->addchild('description', $data["datacite.abstract"][0]["value"])->addAttribute('descriptionType', 'Abstract');
+    }
+    return new Request($this->getRequestType(), $this->getUri(), $this->getRequestHeaders(), $body->asXML());
   }
 
   /**
