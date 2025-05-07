@@ -100,8 +100,7 @@ trait DataciteDOITrait {
   }
 
   protected function buildMetadataRequest(array $data) {
-
-    // Available resource types from Datacite
+    // Available resource types from DataCite
     $availableTypes = [
       "Audiovisual",
       "Award",
@@ -248,6 +247,55 @@ trait DataciteDOITrait {
     if (array_key_exists("datacite.abstract", $data)) {
       $descriptions->addchild('description', $data["datacite.abstract"][0]["value"])->addAttribute('descriptionType', 'Abstract');
     }
+
+    // Other Description (note)
+    if (array_key_exists("datacite.note", $data)) {
+      $descriptions->addchild('description', $data["datacite.note"][0]["value"])->addAttribute('descriptionType', 'Other');
+    }
+
+    // Subject(s)
+    if (array_key_exists("datacite.subject", $data)) {
+      $subjects = $body->addChild('subjects');
+      foreach ($data["datacite.subject"] as $subject) {
+        $subject = $subjects->addChild('subject', $subject["value"]);
+      }
+    }
+
+    // Host Journal - Title must be present for the rest to be added
+    if (array_key_exists("datacite.hostname", $data)) {
+      $host = $body->addChild('relatedItems')->addChild('relatedItem');
+      $host->addAttribute('relatedItemType', 'Journal');
+      $host->addAttribute('relationType', 'IsPublishedIn');
+
+      // Host ISSN
+      if (array_key_exists("datacite.hostissn", $data)) {
+        $host->addChild('relatedItemIdentifier', $data["datacite.hostissn"][0]["value"])->addAttribute('relatedItemIdentifierType', 'ISSN');
+      }
+
+      // Host title
+      $host->addChild('titles')->addChild('title', $data["datacite.hostname"][0]["value"]);
+
+      // Host Volume
+      if (array_key_exists("datacite.hostvolume", $data)) {
+        $host->addChild('volume', $data["datacite.hostvolume"][0]["value"]);
+      }
+
+      // Host Issue
+      if (array_key_exists("datacite.hostissue", $data)) {
+        $host->addChild('issue', $data["datacite.hostissue"][0]["value"]);
+      }
+
+      // Host Start Page
+      if (array_key_exists("datacite.hoststartpage", $data)) {
+        $host->addChild('firstPage', $data["datacite.hoststartpage"][0]["value"]);
+      }
+
+      // Host End Page
+      if (array_key_exists("datacite.hostendpage", $data)) {
+        $host->addChild('lastPage', $data["datacite.hostendpage"][0]["value"]);
+      }
+    }
+
     return new Request($this->getRequestType(), $this->getUri(), $this->getRequestHeaders(), $body->asXML());
   }
 

@@ -60,6 +60,14 @@ class DataciteDataProfile extends DataProfileBase {
       'language' => NULL,
       'rights' => NULL,
       'abstract' => NULL,
+      'subject' => NULL,
+      'hostname' => NULL,
+      'hostissn' => NULL,
+      'hostissue' => NULL,
+      'hostvolume' => NULL,
+      'hoststartpage' => NULL,
+      'hostendpage' => NULL,
+      'note' => NULL,
     ];
   }
 
@@ -171,6 +179,70 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['abstract'],
     ];
+    $form['subject'] = [
+      '#title' => $this->t('Subject(s)'),
+      '#description' => $this->t('Subject(s) for the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['subject'],
+    ];
+    $form['hostname'] = [
+      '#title' => $this->t('Host Journal Name'),
+      '#description' => $this->t('The name of the journal that contains the resource. This must be present for the other host fields to be sent to DataCite.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostname'],
+    ];
+    $form['hostissn'] = [
+      '#title' => $this->t('Host Journal ISSN'),
+      '#description' => $this->t('The ISSN of the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostissn'],
+    ];
+    $form['hostvolume'] = [
+      '#title' => $this->t('Host Journal Volume'),
+      '#description' => $this->t('The volume of the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostvolume'],
+    ];
+    $form['hostissue'] = [
+      '#title' => $this->t('Host Journal Issue'),
+      '#description' => $this->t('The issue of the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostissue'],
+    ];
+    $form['hoststartpage'] = [
+      '#title' => $this->t('Host Journal Start Page'),
+      '#description' => $this->t('The first page in the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hoststartpage'],
+    ];
+    $form['hostendpage'] = [
+      '#title' => $this->t('Host Journal End Page'),
+      '#description' => $this->t('The end page in the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostendpage'],
+    ];
+    $form['note'] = [
+      '#title' => $this->t('Other Description'),
+      '#description' => $this->t('A description with it\'s type set to other.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['note'],
+    ];
     return $form;
   }
 
@@ -190,7 +262,14 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['language'] = $form_state->getValue('language');
     $this->configuration['rights'] = $form_state->getValue('rights');
     $this->configuration['abstract'] = $form_state->getValue('abstract');
-
+    $this->configuration['subject'] = $form_state->getValue('subject');
+    $this->configuration['hostname'] = $form_state->getValue('hostname');
+    $this->configuration['hostissn'] = $form_state->getValue('hostissn');
+    $this->configuration['hostissue'] = $form_state->getValue('hostissue');
+    $this->configuration['hostvolume'] = $form_state->getValue('hostvolume');
+    $this->configuration['hoststartpage'] = $form_state->getValue('hoststartpage');
+    $this->configuration['hostendpage'] = $form_state->getValue('hostendpage');
+    $this->configuration['note'] = $form_state->getValue('note');
   }
 
 }
