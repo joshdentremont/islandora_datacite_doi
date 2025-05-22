@@ -136,6 +136,35 @@ trait DataciteDOITrait {
       "Other"
     ];
 
+    // Check if all mandatory fields are available.
+    $missing = [];
+
+    if (!array_key_exists("datacite.title", $data) || empty($data["datacite.title"]) || empty($data["datacite.title"][0]["value"])) {
+      $missing[] = "Title";
+    }
+
+    if (!array_key_exists("datacite.author", $data) || empty($data["datacite.author"]) || empty($data["datacite.author"][0]["value"])) {
+      $missing[] = "Author";
+    }
+
+    if (!array_key_exists("datacite.publisher", $data) || empty($data["datacite.publisher"]) || empty($data["datacite.publisher"][0]["value"])) {
+      $missing[] = "Publisher";
+    }
+
+    if (!array_key_exists("datacite.year", $data) || empty($data["datacite.year"]) || empty($data["datacite.year"][0]["value"]) || !preg_match('/\b[\dX]{4}\b/', $data["datacite.year"][0]["value"])) {
+      $missing[] = "Year";
+    }
+
+    if (!array_key_exists("datacite.rtypeGeneral", $data) || empty($data["datacite.rtypeGeneral"]) || empty($data["datacite.rtypeGeneral"][0]["value"])) {
+      $missing[] = "Resource Type General";
+    }
+
+    // If any of the mandatory fields are missing, log a warning and return.
+    if (!empty($missing)) {
+      \Drupal::logger('islandora_datacite_doi')->warning("Could not mint DOI. Missing the following mandatory fields: " . implode(', ', $missing));
+      return NULL;
+    }
+
     // Create XML for Datacite
     $body = new \SimpleXMLElement('<resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://datacite.org/schema/kernel-4" xsi:schemaLocation="http://datacite.org/schema/kernel-4 https://schema.datacite.org/meta/kernel-4/metadata.xsd"></resource>');
 
@@ -314,6 +343,9 @@ trait DataciteDOITrait {
   protected function doiMetadataRequest($data) {
     try {
       $request = $this->buildMetadataRequest($data);
+      if (is_null($request)) {
+        return NULL;
+      }
 
       return $this->sendRequest($request);
     } catch (RequestException $e) {

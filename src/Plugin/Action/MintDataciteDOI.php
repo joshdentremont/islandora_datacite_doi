@@ -144,7 +144,11 @@ class MintDataciteDOI extends MintIdentifier {
    */
   protected function mint(): string {
     $data = $this->getFieldData();
-    $doi = $this->getIdentifierFromResponse($this->doiMetadataRequest($data));
+    $request = $this->doiMetadataRequest($data);
+    if (is_null($request)) {
+      return '';
+    }
+    $doi = $this->getIdentifierFromResponse($request);
 
     $entity = $this->getEntity();
     if ($entity->get('status')->getString()) {
