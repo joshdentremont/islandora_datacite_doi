@@ -68,6 +68,7 @@ class DataciteDataProfile extends DataProfileBase {
       'hoststartpage' => NULL,
       'hostendpage' => NULL,
       'note' => NULL,
+      'identical' => NULL,
     ];
   }
 
@@ -243,6 +244,14 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['note'],
     ];
+    $form['identical'] = [
+      '#title' => $this->t('Is Identical To DOI'),
+      '#description' => $this->t('DOI field for DOI of identical object. For example, a publisher\'s DOI'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['identical'],
+    ];
     return $form;
   }
 
@@ -270,6 +279,8 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['hoststartpage'] = $form_state->getValue('hoststartpage');
     $this->configuration['hostendpage'] = $form_state->getValue('hostendpage');
     $this->configuration['note'] = $form_state->getValue('note');
+    $this->configuration['identical'] = $form_state->getValue('identical');
+
   }
 
 }

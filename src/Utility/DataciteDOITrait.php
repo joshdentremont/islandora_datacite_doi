@@ -100,7 +100,7 @@ trait DataciteDOITrait {
   }
 
   protected function buildMetadataRequest(array $data) {
-    // Available resource types from DataCite
+    // Available resource types from DataCite.
     $availableTypes = [
       "Audiovisual",
       "Award",
@@ -165,18 +165,18 @@ trait DataciteDOITrait {
       return NULL;
     }
 
-    // Create XML for Datacite
+    // Create XML for Datacite.
     $body = new \SimpleXMLElement('<resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://datacite.org/schema/kernel-4" xsi:schemaLocation="http://datacite.org/schema/kernel-4 https://schema.datacite.org/meta/kernel-4/metadata.xsd"></resource>');
 
-    // DOI prefix
+    // DOI prefix.
     $body->addChild('identifier', $this->getPrefix())->addAttribute('identifierType', 'DOI');
 
-    // Creator
+    // Creator.
     $creators = $body->addChild('creators');
     foreach ($data["datacite.author"] as $auth) {
       $creator = $creators->addChild('creator');
       $creator->addChild('creatorName', $auth["value"])->addAttribute('nameType', 'Personal');
-      // Add ORCID if available
+      // Add ORCID if available.
       if (array_key_exists("orcid", $auth)) {
         $id = $creator->addChild('nameIdentifier', $auth["orcid"]);
         $id->addAttribute('nameIdentifierScheme', 'ORCID');
@@ -184,42 +184,42 @@ trait DataciteDOITrait {
       }
     }
 
-    // Title
+    // Title.
     $body->addChild('titles')->addChild('title', $data["datacite.title"][0]["value"]);
 
-    // Publisher
+    // Publisher.
     $publisher = $body->addChild('publisher', $data["datacite.publisher"][0]["value"]);
-    // Add ROR if available
+    // Add ROR if available.
     if (array_key_exists("ror", $data["datacite.publisher"][0])) {
       $publisher->addAttribute('publisherIdentifier', $data["datacite.publisher"][0]["ror"]);
       $publisher->addAttribute('publisherIdentifierScheme', 'ROR');
       $publisher->addAttribute('schemeURI', 'https://ror.org');
     }
-    // Publication Year
-    // If string or EDTF is given, extract just year swapping Xs for 0s
+    // Publication Year.
+    // If string or EDTF is given, extract just year swapping Xs for 0s.
     $years = array();
     preg_match('/\b[\dX]{4}\b/', $data["datacite.year"][0]["value"], $years);
     $body->addChild('publicationYear', $years[0]);
 
-    // Resource Type
-    // Set to other if not in datacite's list
+    // Resource Type.
+    // Set to other if not in datacite's list.
     $rtypeGeneral = $data["datacite.rtypeGeneral"][0]["value"];
     if (!in_array($rtypeGeneral, $availableTypes)) {
       $rtypeGeneral = "Other";
     }
     $body->addChild('resourceType', $data["datacite.rtype"][0]["value"])->addAttribute('resourceTypeGeneral', $rtypeGeneral);
 
-    // The following fields are all optional for Datacite
+    // The following fields are all optional for Datacite.
 
-    // Contributors
+    // Contributors.
     $contributors = $body->addChild('contributors');
 
-    // Hosting institution
+    // Hosting institution.
     if (array_key_exists("datacite.hostInstitution", $data)) {
       $host = $contributors->addChild('contributor');
       $host->addAttribute('contributorType', 'HostingInstitution');
       $host->addChild('contributorName', $data["datacite.hostInstitution"][0]["value"])->addAttribute('nameType', 'Organizational');
-      // Add ROR if available
+      // Add ROR if available.
       if (array_key_exists("ror", $data["datacite.hostInstitution"][0])) {
         $id = $host->addChild('nameIdentifier', $data["datacite.hostInstitution"][0]["ror"]);
         $id->addAttribute('nameIdentifierScheme', 'ROR');
@@ -227,13 +227,13 @@ trait DataciteDOITrait {
       }
     }
 
-    // Thesis Supervisor
+    // Thesis Supervisor.
     if (array_key_exists("datacite.supervisor", $data)) {
       foreach ($data["datacite.supervisor"] as $super) {
         $supervisor = $contributors->addChild('contributor');
         $supervisor->addAttribute('contributorType', 'Supervisor');
         $supervisor->addChild('contributorName', $super["value"])->addAttribute('nameType', 'Personal');
-        // Add ORCID if available
+        // Add ORCID if available.
         if (array_key_exists("orcid", $super)) {
           $id = $supervisor->addChild('nameIdentifier', $super["orcid"]);
           $id->addAttribute('nameIdentifierScheme', 'ORCID');
@@ -242,10 +242,10 @@ trait DataciteDOITrait {
       }
     }
 
-    // Dates
+    // Dates.
     $dates = $body->addChild('dates');
 
-    // Date Issued
+    // Date Issued.
     if (array_key_exists("datacite.dateIssued", $data)) {
       $di = str_replace('X', '0', $data["datacite.dateIssued"][0]["value"]);
       $years = array();
@@ -259,30 +259,30 @@ trait DataciteDOITrait {
         $date->addAttribute('dateInformation', $data["datacite.dateIssued"]);
     }
 
-    // Language
+    // Language.
     if (array_key_exists("datacite.language", $data)) {
       $body->addChild('language', $data["datacite.language"][0]["value"]);
     }
 
-    // Rights
+    // Rights.
     if (array_key_exists("datacite.rights", $data)) {
       $body->addchild('rightsList')->addChild('rights', $data["datacite.rights"][0]["value"]);
     }
 
-    // Descriptions
+    // Descriptions.
     $descriptions = $body->addChild('descriptions');
 
-    // Abstract
+    // Abstract.
     if (array_key_exists("datacite.abstract", $data)) {
       $descriptions->addchild('description', $data["datacite.abstract"][0]["value"])->addAttribute('descriptionType', 'Abstract');
     }
 
-    // Other Description (note)
+    // Other Description (note).
     if (array_key_exists("datacite.note", $data)) {
       $descriptions->addchild('description', $data["datacite.note"][0]["value"])->addAttribute('descriptionType', 'Other');
     }
 
-    // Subject(s)
+    // Subject(s).
     if (array_key_exists("datacite.subject", $data)) {
       $subjects = $body->addChild('subjects');
       foreach ($data["datacite.subject"] as $subject) {
@@ -290,39 +290,50 @@ trait DataciteDOITrait {
       }
     }
 
-    // Host Journal - Title must be present for the rest to be added
+    // Host Journal - Title must be present for the rest to be added.
     if (array_key_exists("datacite.hostname", $data)) {
       $host = $body->addChild('relatedItems')->addChild('relatedItem');
       $host->addAttribute('relatedItemType', 'Journal');
       $host->addAttribute('relationType', 'IsPublishedIn');
 
-      // Host ISSN
+      // Host ISSN.
       if (array_key_exists("datacite.hostissn", $data)) {
         $host->addChild('relatedItemIdentifier', $data["datacite.hostissn"][0]["value"])->addAttribute('relatedItemIdentifierType', 'ISSN');
       }
 
-      // Host title
+      // Host title.
       $host->addChild('titles')->addChild('title', $data["datacite.hostname"][0]["value"]);
 
-      // Host Volume
+      // Host Volume.
       if (array_key_exists("datacite.hostvolume", $data)) {
         $host->addChild('volume', $data["datacite.hostvolume"][0]["value"]);
       }
 
-      // Host Issue
+      // Host Issue.
       if (array_key_exists("datacite.hostissue", $data)) {
         $host->addChild('issue', $data["datacite.hostissue"][0]["value"]);
       }
 
-      // Host Start Page
+      // Host Start Page.
       if (array_key_exists("datacite.hoststartpage", $data)) {
         $host->addChild('firstPage', $data["datacite.hoststartpage"][0]["value"]);
       }
 
-      // Host End Page
+      // Host End Page.
       if (array_key_exists("datacite.hostendpage", $data)) {
         $host->addChild('lastPage', $data["datacite.hostendpage"][0]["value"]);
       }
+    }
+
+    // Related Identifiers.
+    $related = $body->addChild('relatedIdentifiers');
+
+    // Identical DOI.
+    if (array_key_exists("datacite.identical", $data)) {
+      $identical = $related->addChild('relatedIdentifier', $data["datacite.identical"][0]["value"]);
+      $identical->addAttribute('relatedIdentifierType', 'DOI');
+      $identical->addAttribute('relationType', 'IsIdenticalTo');
+      $identical->addAttribute('resourceTypeGeneral', $data["datacite.rtypeGeneral"][0]["value"]);
     }
 
     return new Request($this->getRequestType(), $this->getUri(), $this->getRequestHeaders(), $body->asXML());
