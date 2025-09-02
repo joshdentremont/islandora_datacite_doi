@@ -249,14 +249,17 @@ trait DataciteDOITrait {
     if (array_key_exists("datacite.dateIssued", $data)) {
       $di = str_replace('X', '0', $data["datacite.dateIssued"][0]["value"]);
       $years = array();
+      // If the date is not a standard date in the form YYYY-MM-DD, just pull the year
       if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data["datacite.year"][0]["value"])) {
         preg_match('/\b[\dX]{4}\b/', $di, $years);
         $di = $years[0];
       }
 
-      $date = $dates->addChild('date', $di)->addAttribute('dateType', 'Issued');
+      $date = $dates->addChild('date', $di);
+      $date->addAttribute('dateType', 'Issued');
+      // If our stored date differs from the original, put the original in the dateInformation attribute
       if ($di !== $data["datacite.dateIssued"][0]["value"])
-        $date->addAttribute('dateInformation', $data["datacite.dateIssued"]);
+        $date->addAttribute('dateInformation', $data["datacite.dateIssued"][0]["value"]);
     }
 
     // Language.
