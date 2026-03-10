@@ -69,6 +69,7 @@ class DataciteDataProfile extends DataProfileBase {
       'hostendpage' => NULL,
       'note' => NULL,
       'identical' => NULL,
+      'identifiers' => [],
     ];
   }
 
@@ -252,8 +253,135 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['identical'],
     ];
+    $form['identifiers'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Identifiers'),
+      '#prefix' => '<div id="identifiers-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    $identifier_count = $form_state->get('identifier_count');
+    $identifier_values = $form_state->get('identifier_values');
+
+    if ($identifier_count === NULL || $identifier_values === NULL) {
+      $saved = $this->configuration['identifiers'] ?? [];
+      $identifier_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('identifier_values', $identifier_values);
+      $form_state->set('identifier_count', count($identifier_values));
+      $identifier_count = count($identifier_values);
+    }
+
+    $form['identifiers'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Identifiers'),
+      '#prefix' => '<div id="identifiers-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    for ($i = 0; $i < $identifier_count; $i++) {
+      $saved_value = $identifier_values[$i] ?? [];
+      $form['identifiers'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Identifier @num', ['@num' => $i + 1]),
+      ];
+      $form['identifiers'][$i]['identifier_type'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Type'),
+        '#default_value' => $saved_value['identifier_type'] ?? '',
+      ];
+      $form['identifiers'][$i]['identifier_value'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Value'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['identifier_value'] ?? '',
+      ];
+      if ($identifier_count > 1) {
+        $form['identifiers'][$i]['remove_identifier'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_identifier_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addIdentifierCallback'],
+            'wrapper' => 'identifiers-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeIdentifierSubmit']],
+          '#limit_validation_errors' => [['data', 'identifiers']],
+        ];
+      }
+    }
+
+    $form['identifiers']['add_identifier'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another identifier'),
+      '#submit' => [[$this, 'addIdentifierSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addIdentifierCallback'],
+        'wrapper' => 'identifiers-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'identifiers']],
+    ];
+
     return $form;
   }
+
+
+  public function addIdentifierSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'identifiers']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = [
+          'identifier_type' => $item['identifier_type'] ?? '',
+          'identifier_value' => $item['identifier_value'] ?? '',
+        ];
+      }
+    }
+    $values[] = [];
+    $form_state->set('identifier_values', $values);
+    $form_state->set('identifier_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another identifier" button.
+   */
+  public function addIdentifierCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['identifiers'];
+  }
+
+  /**
+   * Submit handler for the "Remove" identifier button.
+   */
+  public function removeIdentifierSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_identifier_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'identifiers']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = [
+          'identifier_type' => $item['identifier_type'] ?? '',
+          'identifier_value' => $item['identifier_value'] ?? '',
+        ];
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['identifiers']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('identifier_values', $values);
+    $form_state->set('identifier_count', count($values));
+    $form_state->setRebuild();
+  }
+
 
   /**
    * {@inheritdoc}
@@ -281,6 +409,19 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['note'] = $form_state->getValue('note');
     $this->configuration['identical'] = $form_state->getValue('identical');
 
+    $identifier_count = $form_state->get('identifier_count') ?? 1;
+    $identifiers = [];
+    for ($i = 0; $i < $identifier_count; $i++) {
+      $type = $form_state->getValue(['identifiers', $i, 'identifier_type']);
+      $value = $form_state->getValue(['identifiers', $i, 'identifier_value']);
+      if (!empty($value)) {
+        $identifiers[] = [
+          'identifier_type' => $type,
+          'identifier_value' => $value,
+        ];
+      }
+    }
+    $this->configuration['identifiers'] = $identifiers;
   }
 
 }

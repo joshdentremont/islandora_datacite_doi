@@ -338,6 +338,16 @@ trait DataciteDOITrait {
       $identical->addAttribute('relationType', 'IsIdenticalTo');
       $identical->addAttribute('resourceTypeGeneral', $data["datacite.rtypeGeneral"][0]["value"]);
     }
+    // Alternate identifiers
+    if (array_key_exists("datacite.identifiers", $data)) {
+      $altIds = $body->addChild('alternateIdentifiers');
+      foreach ($data["datacite.identifiers"] as $type => $value) {
+        if (!empty($type) && !empty($value)) {
+          $altIds->addChild('alternateIdentifier', $value[0]["value"])
+                 ->addAttribute('alternateIdentifierType', $type);
+        }
+      }
+    }
 
     return new Request($this->getRequestType(), $this->getUri(), $this->getRequestHeaders(), $body->asXML());
   }
