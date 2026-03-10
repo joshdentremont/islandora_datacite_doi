@@ -111,12 +111,21 @@ class MintDataciteDOI extends MintIdentifier {
     $data_profile = $this->getIdentifier()->getDataProfile();
     if ($data_profile) {
       foreach ($data_profile->getData() as $key => $field) {
-        if ($this->entity->hasField($field)) {
-          $entity_field = $this->entity->get($field);
-          if ($entity_field->isEmpty()) {
-            continue;
+        // Deal with identifiers being an array
+        if ($key === 'datacite.identifiers') {
+          if ($field[0]['identifier_type'] && $field[0]['identifier_value']) {
+            $data['datacite.identifiers'] = [];
+            foreach ($field as $identifier) {
+              $entity_field = $this->entity->get($identifier['identifier_value']);
+              if (!$entity_field->isEmpty()) {
+                $data['datacite.identifiers'][$identifier['identifier_type']] = $entity_field->getValue();
+              }
+            }
           }
-          else {
+        }
+        else if ($this->entity->hasField($field)) {
+          $entity_field = $this->entity->get($field);
+          if (!$entity_field->isEmpty()) {
             $data[$key] = $entity_field->getValue();
             // Add data for taxonomy terms
             foreach ($data[$key] as &$field_item) {
@@ -138,6 +147,7 @@ class MintDataciteDOI extends MintIdentifier {
     }
     return $data;
   }
+
 
   /**
    * @inheritDoc
