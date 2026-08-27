@@ -105,32 +105,34 @@ trait DataciteDOITrait {
       "Audiovisual",
       "Award",
       "Book",
-      "Book chapter",
+      "BookChapter",
       "Collection",
-      "Computational notebook",
-      "Conference paper",
-      "Conference proceeding",
-      "Data paper",
+      "ComputationalNotebook",
+      "ConferencePaper",
+      "ConferenceProceeding",
+      "DataPaper",
       "Dataset",
       "Dissertation",
       "Event",
       "Image",
       "Instrument",
-      "Interactive resource",
+      "InteractiveResource",
       "Journal",
-      "Journal article",
+      "JournalArticle",
       "Model",
-      "Output management plan",
-      "Peer review",
-      "Physical object",
+      "OutputManagementPlan",
+      "PeerReview",
+      "PhysicalObject",
       "Preprint",
+      "Poster",
+      "Presentation",
       "Project",
       "Report",
       "Service",
       "Software",
       "Sound",
       "Standard",
-      "Study registration",
+      "StudyRegistration",
       "Text",
       "Workflow",
       "Other"
@@ -228,8 +230,12 @@ trait DataciteDOITrait {
     $body->addChild('publicationYear', $years[0]);
 
     // Resource Type.
-    // Set to other if not in datacite's list.
-    $rtypeGeneral = $data["datacite.rtypeGeneral"][0]["value"];
+    // Normalize by stripping spaces and capitalizing each word, e.g.
+    // "journal article" or "Journal Article" becomes "JournalArticle" to
+    // match DataCite's PascalCase resourceTypeGeneral values. Set to
+    // "Other" if the normalized value isn't in DataCite's list.
+    $rtypeWords = preg_split('/\s+/', trim($data["datacite.rtypeGeneral"][0]["value"]));
+    $rtypeGeneral = implode('', array_map('ucfirst', $rtypeWords));
     if (!in_array($rtypeGeneral, $availableTypes)) {
       $rtypeGeneral = "Other";
     }
@@ -311,6 +317,11 @@ trait DataciteDOITrait {
     // Language.
     if (array_key_exists("datacite.language", $data)) {
       $body->addChild('language', $data["datacite.language"][0]["value"]);
+    }
+
+    // Version.
+    if (array_key_exists("datacite.version", $data)) {
+      $body->addChild('version', $data["datacite.version"][0]["value"]);
     }
 
     // Rights.

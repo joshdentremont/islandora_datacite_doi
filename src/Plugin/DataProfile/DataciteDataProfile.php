@@ -59,6 +59,7 @@ class DataciteDataProfile extends DataProfileBase {
       'contributor' => NULL,
       'dateIssued' => NULL,
       'language' => NULL,
+      'version' => NULL,
       'rights' => NULL,
       'abstract' => NULL,
       'subject' => NULL,
@@ -173,6 +174,14 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['language'],
+    ];
+    $form['version'] = [
+      '#title' => $this->t('Version'),
+      '#description' => $this->t('Version number of the resource, e.g. "1.0".'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['version'],
     ];
     $form['rights'] = [
       '#title' => $this->t('Rights'),
@@ -407,6 +416,7 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['contributor'] = $form_state->getValue('contributor');
     $this->configuration['dateIssued'] = $form_state->getValue('dateIssued');
     $this->configuration['language'] = $form_state->getValue('language');
+    $this->configuration['version'] = $form_state->getValue('version');
     $this->configuration['rights'] = $form_state->getValue('rights');
     $this->configuration['abstract'] = $form_state->getValue('abstract');
     $this->configuration['subject'] = $form_state->getValue('subject');
