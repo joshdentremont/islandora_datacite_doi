@@ -123,6 +123,28 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with funder being a paragraph reference.
+        else if ($key === 'datacite.funder') {
+          if ($this->entity->hasField($field)) {
+            $entity_field = $this->entity->get($field);
+            if (!$entity_field->isEmpty()) {
+              $funders = [];
+              foreach ($entity_field->referencedEntities() as $paragraph) {
+                if (!$paragraph->hasField('field_funder_name') || $paragraph->get('field_funder_name')->isEmpty()) {
+                  continue;
+                }
+                $funder = ['value' => $paragraph->get('field_funder_name')->getString()];
+                if ($paragraph->hasField('field_funder_reference_number') && !$paragraph->get('field_funder_reference_number')->isEmpty()) {
+                  $funder['award_number'] = $paragraph->get('field_funder_reference_number')->getString();
+                }
+                $funders[] = $funder;
+              }
+              if (!empty($funders)) {
+                $data[$key] = $funders;
+              }
+            }
+          }
+        }
         else if ($this->entity->hasField($field)) {
           $entity_field = $this->entity->get($field);
           if (!$entity_field->isEmpty()) {

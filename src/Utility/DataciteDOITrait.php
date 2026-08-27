@@ -372,6 +372,18 @@ trait DataciteDOITrait {
       $descriptions->addchild('description', $data["datacite.note"][0]["value"])->addAttribute('descriptionType', 'Other');
     }
 
+    // Funding References (paragraphs with a funder name and award number).
+    if (array_key_exists("datacite.funder", $data)) {
+      $fundingReferences = $body->addChild('fundingReferences');
+      foreach ($data["datacite.funder"] as $funder) {
+        $fundingReference = $fundingReferences->addChild('fundingReference');
+        $fundingReference->addChild('funderName', $funder["value"]);
+        if (array_key_exists("award_number", $funder)) {
+          $fundingReference->addChild('awardNumber', $funder["award_number"]);
+        }
+      }
+    }
+
     // Host Journal - Title must be present for the rest to be added.
     if (array_key_exists("datacite.hostname", $data)) {
       $host = $body->addChild('relatedItems')->addChild('relatedItem');

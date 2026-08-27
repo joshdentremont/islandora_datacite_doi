@@ -48,30 +48,31 @@ class DataciteDataProfile extends DataProfileBase {
    */
   public function defaultConfiguration(): array {
     return [
-      'title' => NULL,
       'author' => NULL,
+      'title' => NULL,
       'publisher' => NULL,
       'year' => NULL,
       'rtypeGeneral' => NULL,
       'rtype' => NULL,
+      'subject' => NULL,
       'hostInstitution' => NULL,
       'supervisor' => NULL,
       'contributor' => NULL,
       'dateIssued' => NULL,
       'language' => NULL,
+      'identifiers' => [],
+      'identical' => NULL,
       'version' => NULL,
       'rights' => NULL,
       'abstract' => NULL,
-      'subject' => NULL,
+      'note' => NULL,
+      'funder' => NULL,
       'hostname' => NULL,
       'hostissn' => NULL,
-      'hostissue' => NULL,
       'hostvolume' => NULL,
+      'hostissue' => NULL,
       'hoststartpage' => NULL,
       'hostendpage' => NULL,
-      'note' => NULL,
-      'identical' => NULL,
-      'identifiers' => [],
     ];
   }
 
@@ -82,15 +83,7 @@ class DataciteDataProfile extends DataProfileBase {
     // The available fields from the entity/bundle are passed through a
     // temporary value in the form state.
     $available_fields = $form_state->getTemporaryValue('available_fields');
-    $form['title'] = [
-      '#title' => $this->t('Title'),
-      '#description' => $this->t('Title of the object being given a DOI.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['title'],
-      '#required' => TRUE,
-    ];
+
     $form['author'] = [
       '#title' => $this->t('Author(s)'),
       '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
@@ -98,6 +91,15 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['author'],
+      '#required' => TRUE,
+    ];
+    $form['title'] = [
+      '#title' => $this->t('Title'),
+      '#description' => $this->t('Title of the object being given a DOI.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['title'],
       '#required' => TRUE,
     ];
     $form['publisher'] = [
@@ -134,6 +136,14 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['rtype'],
+    ];
+    $form['subject'] = [
+      '#title' => $this->t('Subject(s)'),
+      '#description' => $this->t('Subject(s) for the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['subject'],
     ];
     $form['hostInstitution'] = [
       '#title' => $this->t('Hosting Institution'),
@@ -174,102 +184,6 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['language'],
-    ];
-    $form['version'] = [
-      '#title' => $this->t('Version'),
-      '#description' => $this->t('Version number of the resource, e.g. "1.0".'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['version'],
-    ];
-    $form['rights'] = [
-      '#title' => $this->t('Rights'),
-      '#description' => $this->t('Rights information for the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['rights'],
-    ];
-    $form['abstract'] = [
-      '#title' => $this->t('Abstract'),
-      '#description' => $this->t('A description with it\'s type set to abstract.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['abstract'],
-    ];
-    $form['subject'] = [
-      '#title' => $this->t('Subject(s)'),
-      '#description' => $this->t('Subject(s) for the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['subject'],
-    ];
-    $form['hostname'] = [
-      '#title' => $this->t('Host Journal Name'),
-      '#description' => $this->t('The name of the journal that contains the resource. This must be present for the other host fields to be sent to DataCite.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostname'],
-    ];
-    $form['hostissn'] = [
-      '#title' => $this->t('Host Journal ISSN'),
-      '#description' => $this->t('The ISSN of the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostissn'],
-    ];
-    $form['hostvolume'] = [
-      '#title' => $this->t('Host Journal Volume'),
-      '#description' => $this->t('The volume of the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostvolume'],
-    ];
-    $form['hostissue'] = [
-      '#title' => $this->t('Host Journal Issue'),
-      '#description' => $this->t('The issue of the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostissue'],
-    ];
-    $form['hoststartpage'] = [
-      '#title' => $this->t('Host Journal Start Page'),
-      '#description' => $this->t('The first page in the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hoststartpage'],
-    ];
-    $form['hostendpage'] = [
-      '#title' => $this->t('Host Journal End Page'),
-      '#description' => $this->t('The end page in the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostendpage'],
-    ];
-    $form['note'] = [
-      '#title' => $this->t('Other Description'),
-      '#description' => $this->t('A description with it\'s type set to other.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['note'],
-    ];
-    $form['identical'] = [
-      '#title' => $this->t('Is Identical To DOI'),
-      '#description' => $this->t('DOI field for DOI of identical object. For example, a publisher\'s DOI'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['identical'],
     ];
     $form['identifiers'] = [
       '#type' => 'fieldset',
@@ -342,6 +256,103 @@ class DataciteDataProfile extends DataProfileBase {
       '#limit_validation_errors' => [['data', 'identifiers']],
     ];
 
+    $form['identical'] = [
+      '#title' => $this->t('Is Identical To DOI'),
+      '#description' => $this->t('DOI field for DOI of identical object. For example, a publisher\'s DOI'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['identical'],
+    ];
+    $form['version'] = [
+      '#title' => $this->t('Version'),
+      '#description' => $this->t('Version number of the resource, e.g. "1.0".'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['version'],
+    ];
+    $form['rights'] = [
+      '#title' => $this->t('Rights'),
+      '#description' => $this->t('Rights information for the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['rights'],
+    ];
+    $form['abstract'] = [
+      '#title' => $this->t('Abstract'),
+      '#description' => $this->t('A description with it\'s type set to abstract.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['abstract'],
+    ];
+    $form['note'] = [
+      '#title' => $this->t('Other Description'),
+      '#description' => $this->t('A description with it\'s type set to other.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['note'],
+    ];
+    $form['funder'] = [
+      '#title' => $this->t('Funder(s)'),
+      '#description' => $this->t('Paragraph field containing funder information. Each referenced paragraph should have a field_funder_name sub-field (the funder\'s name) and may have a field_funder_reference_number sub-field (the award/grant number).'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['funder'],
+    ];
+    $form['hostname'] = [
+      '#title' => $this->t('Host Journal Name'),
+      '#description' => $this->t('The name of the journal that contains the resource. This must be present for the other host fields to be sent to DataCite.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostname'],
+    ];
+    $form['hostissn'] = [
+      '#title' => $this->t('Host Journal ISSN'),
+      '#description' => $this->t('The ISSN of the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostissn'],
+    ];
+    $form['hostvolume'] = [
+      '#title' => $this->t('Host Journal Volume'),
+      '#description' => $this->t('The volume of the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostvolume'],
+    ];
+    $form['hostissue'] = [
+      '#title' => $this->t('Host Journal Issue'),
+      '#description' => $this->t('The issue of the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostissue'],
+    ];
+    $form['hoststartpage'] = [
+      '#title' => $this->t('Host Journal Start Page'),
+      '#description' => $this->t('The first page in the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hoststartpage'],
+    ];
+    $form['hostendpage'] = [
+      '#title' => $this->t('Host Journal End Page'),
+      '#description' => $this->t('The end page in the journal that contains the resource.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['hostendpage'],
+    ];
+
     return $form;
   }
 
@@ -405,29 +416,18 @@ class DataciteDataProfile extends DataProfileBase {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-    $this->configuration['title'] = $form_state->getValue('title');
     $this->configuration['author'] = $form_state->getValue('author');
+    $this->configuration['title'] = $form_state->getValue('title');
     $this->configuration['publisher'] = $form_state->getValue('publisher');
     $this->configuration['year'] = $form_state->getValue('year');
     $this->configuration['rtypeGeneral'] = $form_state->getValue('rtypeGeneral');
     $this->configuration['rtype'] = $form_state->getValue('rtype');
+    $this->configuration['subject'] = $form_state->getValue('subject');
     $this->configuration['hostInstitution'] = $form_state->getValue('hostInstitution');
     $this->configuration['supervisor'] = $form_state->getValue('supervisor');
     $this->configuration['contributor'] = $form_state->getValue('contributor');
     $this->configuration['dateIssued'] = $form_state->getValue('dateIssued');
     $this->configuration['language'] = $form_state->getValue('language');
-    $this->configuration['version'] = $form_state->getValue('version');
-    $this->configuration['rights'] = $form_state->getValue('rights');
-    $this->configuration['abstract'] = $form_state->getValue('abstract');
-    $this->configuration['subject'] = $form_state->getValue('subject');
-    $this->configuration['hostname'] = $form_state->getValue('hostname');
-    $this->configuration['hostissn'] = $form_state->getValue('hostissn');
-    $this->configuration['hostissue'] = $form_state->getValue('hostissue');
-    $this->configuration['hostvolume'] = $form_state->getValue('hostvolume');
-    $this->configuration['hoststartpage'] = $form_state->getValue('hoststartpage');
-    $this->configuration['hostendpage'] = $form_state->getValue('hostendpage');
-    $this->configuration['note'] = $form_state->getValue('note');
-    $this->configuration['identical'] = $form_state->getValue('identical');
 
     $identifier_count = $form_state->get('identifier_count') ?? 1;
     $identifiers = [];
@@ -442,6 +442,19 @@ class DataciteDataProfile extends DataProfileBase {
       }
     }
     $this->configuration['identifiers'] = $identifiers;
+
+    $this->configuration['identical'] = $form_state->getValue('identical');
+    $this->configuration['version'] = $form_state->getValue('version');
+    $this->configuration['rights'] = $form_state->getValue('rights');
+    $this->configuration['abstract'] = $form_state->getValue('abstract');
+    $this->configuration['note'] = $form_state->getValue('note');
+    $this->configuration['funder'] = $form_state->getValue('funder');
+    $this->configuration['hostname'] = $form_state->getValue('hostname');
+    $this->configuration['hostissn'] = $form_state->getValue('hostissn');
+    $this->configuration['hostvolume'] = $form_state->getValue('hostvolume');
+    $this->configuration['hostissue'] = $form_state->getValue('hostissue');
+    $this->configuration['hoststartpage'] = $form_state->getValue('hoststartpage');
+    $this->configuration['hostendpage'] = $form_state->getValue('hostendpage');
   }
 
 }
