@@ -243,6 +243,14 @@ trait DataciteDOITrait {
 
     // The following fields are all optional for Datacite.
 
+    // Subject(s).
+    if (array_key_exists("datacite.subject", $data)) {
+      $subjects = $body->addChild('subjects');
+      foreach ($data["datacite.subject"] as $subject) {
+        $subject = $subjects->addChild('subject', $subject["value"]);
+      }
+    }
+
     // Contributors.
     $contributors = $body->addChild('contributors');
 
@@ -319,6 +327,28 @@ trait DataciteDOITrait {
       $body->addChild('language', $data["datacite.language"][0]["value"]);
     }
 
+    // Alternate identifiers.
+    if (array_key_exists("datacite.identifiers", $data)) {
+      $altIds = $body->addChild('alternateIdentifiers');
+      foreach ($data["datacite.identifiers"] as $type => $value) {
+        if (!empty($type) && !empty($value)) {
+          $altIds->addChild('alternateIdentifier', $value[0]["value"])
+                 ->addAttribute('alternateIdentifierType', $type);
+        }
+      }
+    }
+
+    // Related Identifiers.
+    $related = $body->addChild('relatedIdentifiers');
+
+    // Identical DOI.
+    if (array_key_exists("datacite.identical", $data)) {
+      $identical = $related->addChild('relatedIdentifier', $data["datacite.identical"][0]["value"]);
+      $identical->addAttribute('relatedIdentifierType', 'DOI');
+      $identical->addAttribute('relationType', 'IsIdenticalTo');
+      $identical->addAttribute('resourceTypeGeneral', $data["datacite.rtypeGeneral"][0]["value"]);
+    }
+
     // Version.
     if (array_key_exists("datacite.version", $data)) {
       $body->addChild('version', $data["datacite.version"][0]["value"]);
@@ -340,14 +370,6 @@ trait DataciteDOITrait {
     // Other Description (note).
     if (array_key_exists("datacite.note", $data)) {
       $descriptions->addchild('description', $data["datacite.note"][0]["value"])->addAttribute('descriptionType', 'Other');
-    }
-
-    // Subject(s).
-    if (array_key_exists("datacite.subject", $data)) {
-      $subjects = $body->addChild('subjects');
-      foreach ($data["datacite.subject"] as $subject) {
-        $subject = $subjects->addChild('subject', $subject["value"]);
-      }
     }
 
     // Host Journal - Title must be present for the rest to be added.
@@ -382,27 +404,6 @@ trait DataciteDOITrait {
       // Host End Page.
       if (array_key_exists("datacite.hostendpage", $data)) {
         $host->addChild('lastPage', $data["datacite.hostendpage"][0]["value"]);
-      }
-    }
-
-    // Related Identifiers.
-    $related = $body->addChild('relatedIdentifiers');
-
-    // Identical DOI.
-    if (array_key_exists("datacite.identical", $data)) {
-      $identical = $related->addChild('relatedIdentifier', $data["datacite.identical"][0]["value"]);
-      $identical->addAttribute('relatedIdentifierType', 'DOI');
-      $identical->addAttribute('relationType', 'IsIdenticalTo');
-      $identical->addAttribute('resourceTypeGeneral', $data["datacite.rtypeGeneral"][0]["value"]);
-    }
-    // Alternate identifiers
-    if (array_key_exists("datacite.identifiers", $data)) {
-      $altIds = $body->addChild('alternateIdentifiers');
-      foreach ($data["datacite.identifiers"] as $type => $value) {
-        if (!empty($type) && !empty($value)) {
-          $altIds->addChild('alternateIdentifier', $value[0]["value"])
-                 ->addAttribute('alternateIdentifierType', $type);
-        }
       }
     }
 
