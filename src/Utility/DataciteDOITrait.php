@@ -136,6 +136,32 @@ trait DataciteDOITrait {
       "Other"
     ];
 
+    // Available contributor types from DataCite.
+    $availableContributorTypes = [
+      "ContactPerson",
+      "DataCollector",
+      "DataCurator",
+      "DataManager",
+      "Distributor",
+      "Editor",
+      "HostingInstitution",
+      "Producer",
+      "ProjectLeader",
+      "ProjectManager",
+      "ProjectMember",
+      "RegistrationAgency",
+      "RegistrationAuthority",
+      "RelatedPerson",
+      "Researcher",
+      "ResearchGroup",
+      "RightsHolder",
+      "Sponsor",
+      "Supervisor",
+      "Translator",
+      "WorkPackageLeader",
+      "Other",
+    ];
+
     // Check if all mandatory fields are available.
     $missing = [];
 
@@ -236,6 +262,26 @@ trait DataciteDOITrait {
         // Add ORCID if available.
         if (array_key_exists("orcid", $super)) {
           $id = $supervisor->addChild('nameIdentifier', $super["orcid"]);
+          $id->addAttribute('nameIdentifierScheme', 'ORCID');
+          $id->addAttribute('schemeURI', 'https://orcid.org');
+        }
+      }
+    }
+
+    // Contributors (typed relation to a person/organization taxonomy term).
+    if (array_key_exists("datacite.contributor", $data)) {
+      foreach ($data["datacite.contributor"] as $contrib) {
+        $contributor = $contributors->addChild('contributor');
+        // Set to other if not in DataCite's list.
+        $contributorType = $contrib['rel_type'] ?? '';
+        if (!in_array($contributorType, $availableContributorTypes)) {
+          $contributorType = "Other";
+        }
+        $contributor->addAttribute('contributorType', $contributorType);
+        $contributor->addChild('contributorName', $contrib["value"])->addAttribute('nameType', 'Personal');
+        // Add ORCID if available.
+        if (array_key_exists("orcid", $contrib)) {
+          $id = $contributor->addChild('nameIdentifier', $contrib["orcid"]);
           $id->addAttribute('nameIdentifierScheme', 'ORCID');
           $id->addAttribute('schemeURI', 'https://orcid.org');
         }

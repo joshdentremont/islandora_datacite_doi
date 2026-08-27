@@ -56,6 +56,7 @@ class DataciteDataProfile extends DataProfileBase {
       'rtype' => NULL,
       'hostInstitution' => NULL,
       'supervisor' => NULL,
+      'contributor' => NULL,
       'dateIssued' => NULL,
       'language' => NULL,
       'rights' => NULL,
@@ -148,6 +149,14 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['supervisor'],
+    ];
+    $form['contributor'] = [
+      '#title' => $this->t('Contributor(s)'),
+      '#description' => $this->t('Contributor(s) of the object, e.g. a typed relation field to a person taxonomy term. The relation type is mapped to a DataCite contributorType (unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['contributor'],
     ];
     $form['dateIssued'] = [
       '#title' => $this->t('Date Issued'),
@@ -395,6 +404,7 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['rtype'] = $form_state->getValue('rtype');
     $this->configuration['hostInstitution'] = $form_state->getValue('hostInstitution');
     $this->configuration['supervisor'] = $form_state->getValue('supervisor');
+    $this->configuration['contributor'] = $form_state->getValue('contributor');
     $this->configuration['dateIssued'] = $form_state->getValue('dateIssued');
     $this->configuration['language'] = $form_state->getValue('language');
     $this->configuration['rights'] = $form_state->getValue('rights');
