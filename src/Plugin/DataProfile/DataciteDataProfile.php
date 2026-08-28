@@ -163,7 +163,11 @@ class DataciteDataProfile extends DataProfileBase {
 
     $name_type_options = array_combine(DataciteVocabularies::NAME_TYPES, DataciteVocabularies::NAME_TYPES);
 
-    $form['author'] = [
+    $form['authorGroup'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Author'),
+    ];
+    $form['authorGroup']['author'] = [
       '#title' => $this->t('Author(s)'),
       '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
@@ -172,7 +176,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#default_value' => $this->configuration['author'],
       '#required' => TRUE,
     ];
-    $form['authorNameType'] = [
+    $form['authorGroup']['authorNameType'] = [
       '#title' => $this->t('Author Name Type'),
       '#description' => $this->t('Left unset, the nameType attribute is omitted (unknown).'),
       '#type' => 'select',
@@ -385,7 +389,11 @@ class DataciteDataProfile extends DataProfileBase {
       '#limit_validation_errors' => [['data', 'contributors']],
     ];
 
-    $form['contributor'] = [
+    $form['contributorGroup'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Contributor (Typed Relation)'),
+    ];
+    $form['contributorGroup']['contributor'] = [
       '#title' => $this->t('Contributor(s) (Typed Relation)'),
       '#description' => $this->t('Use this for a typed relation field to a person taxonomy term, where the contributor type varies per value (mapped from the field\'s relation type to a DataCite contributorType; unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
@@ -393,7 +401,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['contributor'],
     ];
-    $form['contributorNameType'] = [
+    $form['contributorGroup']['contributorNameType'] = [
       '#title' => $this->t('Typed Relation Contributor Name Type'),
       '#description' => $this->t('Applied to every value from the Contributor(s) (Typed Relation) field above. Left unset, the nameType attribute is omitted (unknown).'),
       '#type' => 'select',
@@ -906,7 +914,11 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['identifier_value'] ?? '',
       ];
-      $form['relatedItems'][$i]['creators'] = [
+      $form['relatedItems'][$i]['creatorGroup'] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Creator'),
+      ];
+      $form['relatedItems'][$i]['creatorGroup']['creators'] = [
         '#type' => 'select',
         '#title' => $this->t('Creator(s)'),
         '#description' => $this->t('Field holding the related item\'s creator(s). If the field has multiple values, each becomes a separate creator.'),
@@ -914,7 +926,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['creators'] ?? '',
       ];
-      $form['relatedItems'][$i]['creators_name_type'] = [
+      $form['relatedItems'][$i]['creatorGroup']['creators_name_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Creator Name Type'),
         '#description' => $this->t('Applied to every value in the Creator(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
@@ -950,7 +962,11 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['issue'] ?? '',
       ];
-      $form['relatedItems'][$i]['number_type'] = [
+      $form['relatedItems'][$i]['numberGroup'] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Number'),
+      ];
+      $form['relatedItems'][$i]['numberGroup']['number_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Number Type'),
         '#description' => $this->t('What kind of number is selected below, e.g. article or report number.'),
@@ -958,7 +974,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['number_type'] ?? '',
       ];
-      $form['relatedItems'][$i]['number'] = [
+      $form['relatedItems'][$i]['numberGroup']['number'] = [
         '#type' => 'select',
         '#title' => $this->t('Number'),
         '#options' => $available_fields,
@@ -993,7 +1009,11 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['edition'] ?? '',
       ];
-      $form['relatedItems'][$i]['contributor_type'] = [
+      $form['relatedItems'][$i]['contributorGroup'] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Contributor'),
+      ];
+      $form['relatedItems'][$i]['contributorGroup']['contributor_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Contributor Type'),
         '#description' => $this->t('Contributor type applied to every value in the Contributor(s) field below.'),
@@ -1001,7 +1021,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributor_type'] ?? '',
       ];
-      $form['relatedItems'][$i]['contributors'] = [
+      $form['relatedItems'][$i]['contributorGroup']['contributors'] = [
         '#type' => 'select',
         '#title' => $this->t('Contributor(s)'),
         '#description' => $this->t('Field holding the related item\'s contributor(s). If the field has multiple values, each becomes a separate contributor.'),
@@ -1009,7 +1029,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributors'] ?? '',
       ];
-      $form['relatedItems'][$i]['contributors_name_type'] = [
+      $form['relatedItems'][$i]['contributorGroup']['contributors_name_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Contributor Name Type'),
         '#description' => $this->t('Applied to every value in the Contributor(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
@@ -1463,9 +1483,19 @@ class DataciteDataProfile extends DataProfileBase {
    * Extracts the related item sub-field values from a submitted form item.
    */
   private function extractRelatedItemValues(array $item): array {
+    // creatorGroup/numberGroup/contributorGroup are form-only sub-fieldsets
+    // that group a field with the type(s) that apply to it; flatten them
+    // back out so the stored configuration keeps its plain RELATED_ITEM_KEYS
+    // shape.
+    $flattened = $item;
+    unset($flattened['creatorGroup'], $flattened['numberGroup'], $flattened['contributorGroup']);
+    $flattened += $item['creatorGroup'] ?? [];
+    $flattened += $item['numberGroup'] ?? [];
+    $flattened += $item['contributorGroup'] ?? [];
+
     $values = [];
     foreach (self::RELATED_ITEM_KEYS as $key) {
-      $values[$key] = $item[$key] ?? '';
+      $values[$key] = $flattened[$key] ?? '';
     }
     return $values;
   }
@@ -1523,8 +1553,8 @@ class DataciteDataProfile extends DataProfileBase {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-    $this->configuration['author'] = $form_state->getValue('author');
-    $this->configuration['authorNameType'] = $form_state->getValue('authorNameType');
+    $this->configuration['author'] = $form_state->getValue(['authorGroup', 'author']);
+    $this->configuration['authorNameType'] = $form_state->getValue(['authorGroup', 'authorNameType']);
     $title_count = $form_state->get('title_count') ?? 1;
     $titles = [];
     for ($i = 0; $i < $title_count; $i++) {
@@ -1552,8 +1582,8 @@ class DataciteDataProfile extends DataProfileBase {
     }
     $this->configuration['contributors'] = $contributors;
 
-    $this->configuration['contributor'] = $form_state->getValue('contributor');
-    $this->configuration['contributorNameType'] = $form_state->getValue('contributorNameType');
+    $this->configuration['contributor'] = $form_state->getValue(['contributorGroup', 'contributor']);
+    $this->configuration['contributorNameType'] = $form_state->getValue(['contributorGroup', 'contributorNameType']);
 
     $date_count = $form_state->get('date_count') ?? 1;
     $dates = [];
