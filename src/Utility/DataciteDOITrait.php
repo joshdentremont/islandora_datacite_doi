@@ -205,28 +205,25 @@ trait DataciteDOITrait {
     // Contributors.
     $contributors = $body->addChild('contributors');
 
-    // Hosting institution.
-    if (array_key_exists("datacite.hostInstitution", $data)) {
-      $host = $contributors->addChild('contributor');
-      $host->addAttribute('contributorType', 'HostingInstitution');
-      $host->addChild('contributorName', $data["datacite.hostInstitution"][0]["value"])->addAttribute('nameType', 'Organizational');
-      // Add ROR if available.
-      if (array_key_exists("ror", $data["datacite.hostInstitution"][0])) {
-        $id = $host->addChild('nameIdentifier', $data["datacite.hostInstitution"][0]["ror"]);
-        $id->addAttribute('nameIdentifierScheme', 'ROR');
-        $id->addAttribute('schemeURI', 'https://ror.org');
-      }
-    }
-
-    // Thesis Supervisor.
-    if (array_key_exists("datacite.supervisor", $data)) {
-      foreach ($data["datacite.supervisor"] as $super) {
-        $supervisor = $contributors->addChild('contributor');
-        $supervisor->addAttribute('contributorType', 'Supervisor');
-        $supervisor->addChild('contributorName', $super["value"])->addAttribute('nameType', 'Personal');
-        // Add ORCID if available.
-        if (array_key_exists("orcid", $super)) {
-          $id = $supervisor->addChild('nameIdentifier', $super["orcid"]);
+    // Fixed-type contributors (e.g. hosting institution, thesis supervisor).
+    // Each entry's contributor_type/name_type are chosen from DataCite's
+    // controlled vocabularies directly in the data profile form.
+    if (array_key_exists("datacite.contributors", $data)) {
+      foreach ($data["datacite.contributors"] as $c) {
+        $fixedContributor = $contributors->addChild('contributor');
+        $fixedContributor->addAttribute('contributorType', $c['contributor_type']);
+        $fixedContributorName = $fixedContributor->addChild('contributorName', $c['value']);
+        if (!empty($c['name_type'])) {
+          $fixedContributorName->addAttribute('nameType', $c['name_type']);
+        }
+        // Add ROR or ORCID if available.
+        if (array_key_exists("ror", $c)) {
+          $id = $fixedContributor->addChild('nameIdentifier', $c["ror"]);
+          $id->addAttribute('nameIdentifierScheme', 'ROR');
+          $id->addAttribute('schemeURI', 'https://ror.org');
+        }
+        if (array_key_exists("orcid", $c)) {
+          $id = $fixedContributor->addChild('nameIdentifier', $c["orcid"]);
           $id->addAttribute('nameIdentifierScheme', 'ORCID');
           $id->addAttribute('schemeURI', 'https://orcid.org');
         }

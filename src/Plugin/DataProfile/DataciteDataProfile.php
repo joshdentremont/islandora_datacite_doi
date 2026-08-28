@@ -43,6 +43,16 @@ class DataciteDataProfile extends DataProfileBase {
   ];
 
   /**
+   * Keys of the sub-fields stored for each repeatable fixed-type
+   * contributor entry.
+   */
+  const CONTRIBUTOR_KEYS = [
+    'contributor_type',
+    'name_type',
+    'field',
+  ];
+
+  /**
    * Keys of the sub-fields stored for each repeatable title entry.
    */
   const TITLE_KEYS = [
@@ -125,8 +135,7 @@ class DataciteDataProfile extends DataProfileBase {
       'rtypeGeneral' => NULL,
       'rtype' => NULL,
       'subject' => NULL,
-      'hostInstitution' => NULL,
-      'supervisor' => NULL,
+      'contributors' => [],
       'contributor' => NULL,
       'contributorNameType' => NULL,
       'dates' => [],
@@ -291,33 +300,102 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['subject'],
     ];
-    $form['hostInstitution'] = [
-      '#title' => $this->t('Hosting Institution'),
-      '#description' => $this->t('Name of the host institution. If host is a taxonomy term and the taxonomy has a URL field called field_ror, that value is automatically pulled as well.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostInstitution'],
+    $contributor_type_options = array_combine(DataciteVocabularies::CONTRIBUTOR_TYPES, DataciteVocabularies::CONTRIBUTOR_TYPES);
+
+    $form['contributors'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Contributors (Fixed Type)'),
+      '#description' => $this->t('Each entry picks a Drupal field and a single contributor type applied to every value in that field. If a value is a taxonomy term and the taxonomy has a URL field called field_ror or field_orcid, that value is automatically pulled as well. Use this for contributors that are always one type, e.g. a hosting institution field (always "HostingInstitution") or a thesis supervisor field (always "Supervisor").'),
+      '#prefix' => '<div id="contributors-wrapper">',
+      '#suffix' => '</div>',
     ];
-    $form['supervisor'] = [
-      '#title' => $this->t('Thesis Supervisor(s)'),
-      '#description' => $this->t('Name of the thesis/dissertation supervisor(s). If supervisor is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['supervisor'],
+
+    $contributor_count = $form_state->get('contributor_count');
+    $contributor_values = $form_state->get('contributor_values');
+
+    if ($contributor_count === NULL || $contributor_values === NULL) {
+      $saved = $this->configuration['contributors'] ?? [];
+      $contributor_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('contributor_values', $contributor_values);
+      $form_state->set('contributor_count', count($contributor_values));
+      $contributor_count = count($contributor_values);
+    }
+
+    $form['contributors'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Contributors (Fixed Type)'),
+      '#description' => $this->t('Each entry picks a Drupal field and a single contributor type applied to every value in that field. If a value is a taxonomy term and the taxonomy has a URL field called field_ror or field_orcid, that value is automatically pulled as well. Use this for contributors that are always one type, e.g. a hosting institution field (always "HostingInstitution") or a thesis supervisor field (always "Supervisor").'),
+      '#prefix' => '<div id="contributors-wrapper">',
+      '#suffix' => '</div>',
     ];
+
+    for ($i = 0; $i < $contributor_count; $i++) {
+      $saved_value = $contributor_values[$i] ?? [];
+      $form['contributors'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Contributor @num', ['@num' => $i + 1]),
+      ];
+      $form['contributors'][$i]['contributor_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Contributor Type'),
+        '#options' => $contributor_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['contributor_type'] ?? '',
+      ];
+      $form['contributors'][$i]['name_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Name Type'),
+        '#description' => $this->t('Left unset, the nameType attribute is omitted (unknown).'),
+        '#options' => $name_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['name_type'] ?? '',
+      ];
+      $form['contributors'][$i]['field'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Field'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['field'] ?? '',
+      ];
+      if ($contributor_count > 1) {
+        $form['contributors'][$i]['remove_contributor'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_contributor_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addContributorCallback'],
+            'wrapper' => 'contributors-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeContributorSubmit']],
+          '#limit_validation_errors' => [['data', 'contributors']],
+        ];
+      }
+    }
+
+    $form['contributors']['add_contributor'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another contributor'),
+      '#submit' => [[$this, 'addContributorSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addContributorCallback'],
+        'wrapper' => 'contributors-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'contributors']],
+    ];
+
     $form['contributor'] = [
-      '#title' => $this->t('Contributor(s)'),
-      '#description' => $this->t('Contributor(s) of the object, e.g. a typed relation field to a person taxonomy term. The relation type is mapped to a DataCite contributorType (unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
+      '#title' => $this->t('Contributor(s) (Typed Relation)'),
+      '#description' => $this->t('Use this for a typed relation field to a person taxonomy term, where the contributor type varies per value (mapped from the field\'s relation type to a DataCite contributorType; unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['contributor'],
     ];
     $form['contributorNameType'] = [
-      '#title' => $this->t('Contributor Name Type'),
-      '#description' => $this->t('Left unset, the nameType attribute is omitted (unknown).'),
+      '#title' => $this->t('Typed Relation Contributor Name Type'),
+      '#description' => $this->t('Applied to every value from the Contributor(s) (Typed Relation) field above. Left unset, the nameType attribute is omitted (unknown).'),
       '#type' => 'select',
       '#options' => $name_type_options,
       '#empty_option' => $this->t('- None -'),
@@ -1085,6 +1163,66 @@ class DataciteDataProfile extends DataProfileBase {
   }
 
   /**
+   * Extracts the fixed-type contributor sub-field values from a submitted
+   * form item.
+   */
+  private function extractContributorValues(array $item): array {
+    $values = [];
+    foreach (self::CONTRIBUTOR_KEYS as $key) {
+      $values[$key] = $item[$key] ?? '';
+    }
+    return $values;
+  }
+
+  public function addContributorSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'contributors']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractContributorValues($item);
+      }
+    }
+    $values[] = [];
+    $form_state->set('contributor_values', $values);
+    $form_state->set('contributor_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another contributor" button.
+   */
+  public function addContributorCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['contributors'];
+  }
+
+  /**
+   * Submit handler for the "Remove" contributor button.
+   */
+  public function removeContributorSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_contributor_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'contributors']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractContributorValues($item);
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['contributors']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('contributor_values', $values);
+    $form_state->set('contributor_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
    * Extracts the title sub-field values from a submitted form item.
    */
   private function extractTitleValues(array $item): array {
@@ -1403,8 +1541,17 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['rtypeGeneral'] = $form_state->getValue('rtypeGeneral');
     $this->configuration['rtype'] = $form_state->getValue('rtype');
     $this->configuration['subject'] = $form_state->getValue('subject');
-    $this->configuration['hostInstitution'] = $form_state->getValue('hostInstitution');
-    $this->configuration['supervisor'] = $form_state->getValue('supervisor');
+    $contributor_count = $form_state->get('contributor_count') ?? 1;
+    $contributors = [];
+    for ($i = 0; $i < $contributor_count; $i++) {
+      $item = $form_state->getValue(['contributors', $i]) ?? [];
+      $entry = $this->extractContributorValues($item);
+      if (!empty($entry['contributor_type']) && !empty($entry['field'])) {
+        $contributors[] = $entry;
+      }
+    }
+    $this->configuration['contributors'] = $contributors;
+
     $this->configuration['contributor'] = $form_state->getValue('contributor');
     $this->configuration['contributorNameType'] = $form_state->getValue('contributorNameType');
 

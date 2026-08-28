@@ -123,6 +123,51 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with fixed-type contributors: a repeatable set of a
+        // profile-level contributor type/nameType value plus one Drupal
+        // field selection, where every value in that field gets the same
+        // fixed type. Replaces the old hardcoded hostInstitution/supervisor
+        // fields.
+        else if ($key === 'datacite.contributors') {
+          $contributorsList = [];
+          foreach ($field as $c) {
+            if (empty($c['contributor_type']) || empty($c['field']) || !$this->entity->hasField($c['field'])) {
+              continue;
+            }
+            $entity_field = $this->entity->get($c['field']);
+            if ($entity_field->isEmpty()) {
+              continue;
+            }
+            foreach ($entity_field->getValue() as $field_item) {
+              $entry = [
+                'contributor_type' => $c['contributor_type'],
+                'name_type' => $c['name_type'] ?? '',
+              ];
+              if (array_key_exists('target_id', $field_item)) {
+                $term = Term::load($field_item['target_id']);
+                if (!$term) {
+                  continue;
+                }
+                $entry['value'] = $term->label();
+                if ($term->hasField('field_ror') && !$term->get('field_ror')->isEmpty()) {
+                  $entry['ror'] = $term->get('field_ror')->uri;
+                }
+                if ($term->hasField('field_orcid') && !$term->get('field_orcid')->isEmpty()) {
+                  $entry['orcid'] = $term->get('field_orcid')->uri;
+                }
+              }
+              else {
+                $entry['value'] = $field_item['value'] ?? '';
+              }
+              if (!empty($entry['value'])) {
+                $contributorsList[] = $entry;
+              }
+            }
+          }
+          if (!empty($contributorsList)) {
+            $data[$key] = $contributorsList;
+          }
+        }
         // Deal with descriptions being a repeatable set of a profile-level
         // description-type value plus one Drupal field selection.
         else if ($key === 'datacite.descriptions') {
