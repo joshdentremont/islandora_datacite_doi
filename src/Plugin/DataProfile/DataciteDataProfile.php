@@ -219,19 +219,19 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Title @num', ['@num' => $i + 1]),
       ];
-      $form['titles'][$i]['title_type'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Title Type'),
-        '#options' => $title_type_options,
-        '#empty_option' => $this->t('- Main Title -'),
-        '#default_value' => $saved_value['title_type'] ?? '',
-      ];
       $form['titles'][$i]['title_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Title'),
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['title_value'] ?? '',
+      ];
+      $form['titles'][$i]['title_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Title Type'),
+        '#options' => $title_type_options,
+        '#empty_option' => $this->t('- Main Title -'),
+        '#default_value' => $saved_value['title_type'] ?? '',
       ];
       if ($title_count > 1) {
         $form['titles'][$i]['remove_title'] = [
@@ -339,6 +339,13 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Contributor @num', ['@num' => $i + 1]),
       ];
+      $form['contributors'][$i]['field'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Field'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['field'] ?? '',
+      ];
       $form['contributors'][$i]['contributor_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Contributor Type'),
@@ -353,13 +360,6 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $name_type_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['name_type'] ?? '',
-      ];
-      $form['contributors'][$i]['field'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Field'),
-        '#options' => $available_fields,
-        '#empty_option' => $this->t('- None -'),
-        '#default_value' => $saved_value['field'] ?? '',
       ];
       if ($contributor_count > 1) {
         $form['contributors'][$i]['remove_contributor'] = [
@@ -442,13 +442,6 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Date @num', ['@num' => $i + 1]),
       ];
-      $form['dates'][$i]['date_type'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Date Type'),
-        '#options' => $date_type_options,
-        '#empty_option' => $this->t('- None -'),
-        '#default_value' => $saved_value['date_type'] ?? '',
-      ];
       $form['dates'][$i]['date_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Date'),
@@ -456,6 +449,13 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['date_value'] ?? '',
+      ];
+      $form['dates'][$i]['date_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Date Type'),
+        '#options' => $date_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['date_type'] ?? '',
       ];
       if ($date_count > 1) {
         $form['dates'][$i]['remove_date'] = [
@@ -607,6 +607,13 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['relation_type'] ?? '',
       ];
+      $form['relatedIdentifiers'][$i]['identifier_value'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Identifier'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['identifier_value'] ?? '',
+      ];
       $form['relatedIdentifiers'][$i]['identifier_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Identifier Type'),
@@ -621,13 +628,6 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $related_identifier_resource_type_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['resource_type_general'] ?? '',
-      ];
-      $form['relatedIdentifiers'][$i]['identifier_value'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Identifier'),
-        '#options' => $available_fields,
-        '#empty_option' => $this->t('- None -'),
-        '#default_value' => $saved_value['identifier_value'] ?? '',
       ];
       if ($related_identifier_count > 1) {
         $form['relatedIdentifiers'][$i]['remove_related_identifier'] = [
@@ -722,19 +722,19 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Description @num', ['@num' => $i + 1]),
       ];
-      $form['descriptions'][$i]['description_type'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Description Type'),
-        '#options' => $description_type_options,
-        '#empty_option' => $this->t('- None -'),
-        '#default_value' => $saved_value['description_type'] ?? '',
-      ];
       $form['descriptions'][$i]['description_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Description'),
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['description_value'] ?? '',
+      ];
+      $form['descriptions'][$i]['description_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Description Type'),
+        '#options' => $description_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['description_type'] ?? '',
       ];
       if ($description_count > 1) {
         $form['descriptions'][$i]['remove_description'] = [
@@ -899,20 +899,20 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['related_item_type'] ?? '',
       ];
-      $form['relatedItems'][$i]['related_identifier_type'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Related Identifier Type'),
-        '#description' => $this->t('The type of the identifier selected below, e.g. "ISSN" or "DOI".'),
-        '#options' => $related_identifier_type_options,
-        '#empty_option' => $this->t('- None -'),
-        '#default_value' => $saved_value['related_identifier_type'] ?? '',
-      ];
       $form['relatedItems'][$i]['identifier_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Identifier'),
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['identifier_value'] ?? '',
+      ];
+      $form['relatedItems'][$i]['related_identifier_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Related Identifier Type'),
+        '#description' => $this->t('The type of the identifier selected above, e.g. "ISSN" or "DOI".'),
+        '#options' => $related_identifier_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['related_identifier_type'] ?? '',
       ];
       $form['relatedItems'][$i]['creatorGroup'] = [
         '#type' => 'fieldset',
@@ -966,20 +966,20 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Number'),
       ];
-      $form['relatedItems'][$i]['numberGroup']['number_type'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Number Type'),
-        '#description' => $this->t('What kind of number is selected below, e.g. article or report number.'),
-        '#options' => $number_type_options,
-        '#empty_option' => $this->t('- None -'),
-        '#default_value' => $saved_value['number_type'] ?? '',
-      ];
       $form['relatedItems'][$i]['numberGroup']['number'] = [
         '#type' => 'select',
         '#title' => $this->t('Number'),
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['number'] ?? '',
+      ];
+      $form['relatedItems'][$i]['numberGroup']['number_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Number Type'),
+        '#description' => $this->t('What kind of number is selected above, e.g. article or report number.'),
+        '#options' => $number_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['number_type'] ?? '',
       ];
       $form['relatedItems'][$i]['first_page'] = [
         '#type' => 'select',
@@ -1013,14 +1013,6 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Contributor'),
       ];
-      $form['relatedItems'][$i]['contributorGroup']['contributor_type'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Contributor Type'),
-        '#description' => $this->t('Contributor type applied to every value in the Contributor(s) field below.'),
-        '#options' => $contributor_type_options,
-        '#empty_option' => $this->t('- None -'),
-        '#default_value' => $saved_value['contributor_type'] ?? '',
-      ];
       $form['relatedItems'][$i]['contributorGroup']['contributors'] = [
         '#type' => 'select',
         '#title' => $this->t('Contributor(s)'),
@@ -1028,6 +1020,14 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributors'] ?? '',
+      ];
+      $form['relatedItems'][$i]['contributorGroup']['contributor_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Contributor Type'),
+        '#description' => $this->t('Contributor type applied to every value in the Contributor(s) field above.'),
+        '#options' => $contributor_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['contributor_type'] ?? '',
       ];
       $form['relatedItems'][$i]['contributorGroup']['contributors_name_type'] = [
         '#type' => 'select',
