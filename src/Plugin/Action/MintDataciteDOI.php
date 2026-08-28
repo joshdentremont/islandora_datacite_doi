@@ -157,14 +157,22 @@ class MintDataciteDOI extends MintIdentifier {
               'relation_type' => $ri['relation_type'],
               'related_item_type' => $ri['related_item_type'],
               'related_identifier_type' => $ri['related_identifier_type'] ?? '',
+              'number_type' => $ri['number_type'] ?? '',
             ];
-            foreach (['identifier_value', 'title', 'publication_year', 'volume', 'issue', 'first_page', 'last_page', 'publisher', 'edition'] as $sub_key) {
+            foreach (['identifier_value', 'creators', 'title', 'publication_year', 'volume', 'issue', 'number', 'first_page', 'last_page', 'publisher', 'edition'] as $sub_key) {
               $field_name = $ri[$sub_key] ?? '';
-              if (!empty($field_name) && $this->entity->hasField($field_name)) {
-                $entity_field = $this->entity->get($field_name);
-                if (!$entity_field->isEmpty()) {
-                  $entry[$sub_key] = $entity_field->getString();
-                }
+              if (empty($field_name) || !$this->entity->hasField($field_name)) {
+                continue;
+              }
+              $entity_field = $this->entity->get($field_name);
+              if ($entity_field->isEmpty()) {
+                continue;
+              }
+              if ($sub_key === 'creators') {
+                $entry['creators'] = array_column($entity_field->getValue(), 'value');
+              }
+              else {
+                $entry[$sub_key] = $entity_field->getString();
               }
             }
             $relatedItems[] = $entry;

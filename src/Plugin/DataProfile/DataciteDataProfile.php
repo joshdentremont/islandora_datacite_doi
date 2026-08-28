@@ -25,10 +25,13 @@ class DataciteDataProfile extends DataProfileBase {
     'related_item_type',
     'related_identifier_type',
     'identifier_value',
+    'creators',
     'title',
     'publication_year',
     'volume',
     'issue',
+    'number_type',
+    'number',
     'first_page',
     'last_page',
     'publisher',
@@ -349,6 +352,7 @@ class DataciteDataProfile extends DataProfileBase {
     $relation_type_options = array_combine(DataciteVocabularies::RELATION_TYPES, DataciteVocabularies::RELATION_TYPES);
     $related_item_type_options = array_combine(DataciteVocabularies::RESOURCE_TYPES, DataciteVocabularies::RESOURCE_TYPES);
     $related_identifier_type_options = array_combine(DataciteVocabularies::IDENTIFIER_TYPES, DataciteVocabularies::IDENTIFIER_TYPES);
+    $number_type_options = array_combine(DataciteVocabularies::NUMBER_TYPES, DataciteVocabularies::NUMBER_TYPES);
 
     $form['relatedItems'] = [
       '#type' => 'fieldset',
@@ -411,6 +415,14 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['identifier_value'] ?? '',
       ];
+      $form['relatedItems'][$i]['creators'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Creator(s)'),
+        '#description' => $this->t('Field holding the related item\'s creator(s). If the field has multiple values, each becomes a separate creator.'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['creators'] ?? '',
+      ];
       $form['relatedItems'][$i]['title'] = [
         '#type' => 'select',
         '#title' => $this->t('Title'),
@@ -438,6 +450,21 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['issue'] ?? '',
+      ];
+      $form['relatedItems'][$i]['number_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Number Type'),
+        '#description' => $this->t('What kind of number is selected below, e.g. article or report number.'),
+        '#options' => $number_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['number_type'] ?? '',
+      ];
+      $form['relatedItems'][$i]['number'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Number'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['number'] ?? '',
       ];
       $form['relatedItems'][$i]['first_page'] = [
         '#type' => 'select',

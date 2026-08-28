@@ -360,6 +360,15 @@ trait DataciteDOITrait {
           $relatedItem->addChild('relatedItemIdentifier', $ri['identifier_value'])
                       ->addAttribute('relatedItemIdentifierType', $ri['related_identifier_type']);
         }
+        if (!empty($ri['creators'])) {
+          $creatorsEl = $relatedItem->addChild('creators');
+          foreach ($ri['creators'] as $creatorName) {
+            if (empty($creatorName)) {
+              continue;
+            }
+            $creatorsEl->addChild('creator')->addChild('creatorName', $creatorName)->addAttribute('nameType', 'Personal');
+          }
+        }
         if (!empty($ri['title'])) {
           $relatedItem->addChild('titles')->addChild('title', $ri['title']);
         }
@@ -371,6 +380,12 @@ trait DataciteDOITrait {
         }
         if (!empty($ri['issue'])) {
           $relatedItem->addChild('issue', $ri['issue']);
+        }
+        if (!empty($ri['number'])) {
+          $number = $relatedItem->addChild('number', $ri['number']);
+          if (!empty($ri['number_type'])) {
+            $number->addAttribute('numberType', $ri['number_type']);
+          }
         }
         if (!empty($ri['first_page'])) {
           $relatedItem->addChild('firstPage', $ri['first_page']);

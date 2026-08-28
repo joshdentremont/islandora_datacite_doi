@@ -125,6 +125,16 @@ final class DataciteVocabularies {
   ];
 
   /**
+   * Valid values for numberType, the attribute on relatedItem's "number".
+   */
+  const NUMBER_TYPES = [
+    "Article",
+    "Chapter",
+    "Report",
+    "Other",
+  ];
+
+  /**
    * Valid values for relatedIdentifierType and relatedItemIdentifierType.
    */
   const IDENTIFIER_TYPES = [
