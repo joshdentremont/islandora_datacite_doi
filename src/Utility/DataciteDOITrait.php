@@ -213,7 +213,13 @@ trait DataciteDOITrait {
     }
 
     // Title.
-    $body->addChild('titles')->addChild('title', $data["datacite.title"][0]["value"]);
+    $titles = $body->addChild('titles');
+    $titles->addChild('title', $data["datacite.title"][0]["value"]);
+
+    // Subtitle.
+    if (array_key_exists("datacite.subtitle", $data)) {
+      $titles->addChild('title', $data["datacite.subtitle"][0]["value"])->addAttribute('titleType', 'Subtitle');
+    }
 
     // Publisher.
     $publisher = $body->addChild('publisher', $data["datacite.publisher"][0]["value"]);
@@ -347,6 +353,22 @@ trait DataciteDOITrait {
       $identical->addAttribute('relatedIdentifierType', 'DOI');
       $identical->addAttribute('relationType', 'IsIdenticalTo');
       $identical->addAttribute('resourceTypeGeneral', $data["datacite.rtypeGeneral"][0]["value"]);
+    }
+
+    // Sizes.
+    if (array_key_exists("datacite.size", $data)) {
+      $sizes = $body->addChild('sizes');
+      foreach ($data["datacite.size"] as $size) {
+        $sizes->addChild('size', $size["value"]);
+      }
+    }
+
+    // Formats.
+    if (array_key_exists("datacite.format", $data)) {
+      $formats = $body->addChild('formats');
+      foreach ($data["datacite.format"] as $format) {
+        $formats->addChild('format', $format["value"]);
+      }
     }
 
     // Version.

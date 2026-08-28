@@ -50,6 +50,7 @@ class DataciteDataProfile extends DataProfileBase {
     return [
       'author' => NULL,
       'title' => NULL,
+      'subtitle' => NULL,
       'publisher' => NULL,
       'year' => NULL,
       'rtypeGeneral' => NULL,
@@ -62,6 +63,8 @@ class DataciteDataProfile extends DataProfileBase {
       'language' => NULL,
       'identifiers' => [],
       'identical' => NULL,
+      'size' => NULL,
+      'format' => NULL,
       'version' => NULL,
       'rights' => NULL,
       'abstract' => NULL,
@@ -101,6 +104,14 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['title'],
       '#required' => TRUE,
+    ];
+    $form['subtitle'] = [
+      '#title' => $this->t('Subtitle'),
+      '#description' => $this->t('Subtitle of the object being given a DOI.'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['subtitle'],
     ];
     $form['publisher'] = [
       '#title' => $this->t('Publisher'),
@@ -264,6 +275,22 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['identical'],
     ];
+    $form['size'] = [
+      '#title' => $this->t('Size(s)'),
+      '#description' => $this->t('Size(s) of the resource, e.g. "90 pages" or "1 MB".'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['size'],
+    ];
+    $form['format'] = [
+      '#title' => $this->t('Format(s)'),
+      '#description' => $this->t('Technical format(s) of the resource, e.g. a MIME type like "application/pdf".'),
+      '#type' => 'select',
+      '#options' => $available_fields,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['format'],
+    ];
     $form['version'] = [
       '#title' => $this->t('Version'),
       '#description' => $this->t('Version number of the resource, e.g. "1.0".'),
@@ -418,6 +445,7 @@ class DataciteDataProfile extends DataProfileBase {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['author'] = $form_state->getValue('author');
     $this->configuration['title'] = $form_state->getValue('title');
+    $this->configuration['subtitle'] = $form_state->getValue('subtitle');
     $this->configuration['publisher'] = $form_state->getValue('publisher');
     $this->configuration['year'] = $form_state->getValue('year');
     $this->configuration['rtypeGeneral'] = $form_state->getValue('rtypeGeneral');
@@ -444,6 +472,8 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['identifiers'] = $identifiers;
 
     $this->configuration['identical'] = $form_state->getValue('identical');
+    $this->configuration['size'] = $form_state->getValue('size');
+    $this->configuration['format'] = $form_state->getValue('format');
     $this->configuration['version'] = $form_state->getValue('version');
     $this->configuration['rights'] = $form_state->getValue('rights');
     $this->configuration['abstract'] = $form_state->getValue('abstract');
