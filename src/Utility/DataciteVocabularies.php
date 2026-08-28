@@ -125,6 +125,14 @@ final class DataciteVocabularies {
   ];
 
   /**
+   * Valid values for nameType, the attribute on creatorName/contributorName.
+   */
+  const NAME_TYPES = [
+    "Personal",
+    "Organizational",
+  ];
+
+  /**
    * Valid values for dateType.
    */
   const DATE_TYPES = [

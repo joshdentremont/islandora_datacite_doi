@@ -26,6 +26,7 @@ class DataciteDataProfile extends DataProfileBase {
     'related_identifier_type',
     'identifier_value',
     'creators',
+    'creators_name_type',
     'title',
     'publication_year',
     'volume',
@@ -38,6 +39,7 @@ class DataciteDataProfile extends DataProfileBase {
     'edition',
     'contributor_type',
     'contributors',
+    'contributors_name_type',
   ];
 
   /**
@@ -100,6 +102,7 @@ class DataciteDataProfile extends DataProfileBase {
   public function defaultConfiguration(): array {
     return [
       'author' => NULL,
+      'authorNameType' => NULL,
       'title' => NULL,
       'subtitle' => NULL,
       'publisher' => NULL,
@@ -110,6 +113,7 @@ class DataciteDataProfile extends DataProfileBase {
       'hostInstitution' => NULL,
       'supervisor' => NULL,
       'contributor' => NULL,
+      'contributorNameType' => NULL,
       'dates' => [],
       'language' => NULL,
       'identifiers' => [],
@@ -134,6 +138,8 @@ class DataciteDataProfile extends DataProfileBase {
     // temporary value in the form state.
     $available_fields = $form_state->getTemporaryValue('available_fields');
 
+    $name_type_options = array_combine(DataciteVocabularies::NAME_TYPES, DataciteVocabularies::NAME_TYPES);
+
     $form['author'] = [
       '#title' => $this->t('Author(s)'),
       '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
@@ -142,6 +148,14 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['author'],
       '#required' => TRUE,
+    ];
+    $form['authorNameType'] = [
+      '#title' => $this->t('Author Name Type'),
+      '#description' => $this->t('Left unset, the nameType attribute is omitted (unknown).'),
+      '#type' => 'select',
+      '#options' => $name_type_options,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['authorNameType'],
     ];
     $form['title'] = [
       '#title' => $this->t('Title'),
@@ -226,6 +240,14 @@ class DataciteDataProfile extends DataProfileBase {
       '#options' => $available_fields,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['contributor'],
+    ];
+    $form['contributorNameType'] = [
+      '#title' => $this->t('Contributor Name Type'),
+      '#description' => $this->t('Left unset, the nameType attribute is omitted (unknown).'),
+      '#type' => 'select',
+      '#options' => $name_type_options,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['contributorNameType'],
     ];
     $date_type_options = array_combine(DataciteVocabularies::DATE_TYPES, DataciteVocabularies::DATE_TYPES);
 
@@ -682,6 +704,14 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['creators'] ?? '',
       ];
+      $form['relatedItems'][$i]['creators_name_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Creator Name Type'),
+        '#description' => $this->t('Applied to every value in the Creator(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
+        '#options' => $name_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['creators_name_type'] ?? '',
+      ];
       $form['relatedItems'][$i]['title'] = [
         '#type' => 'select',
         '#title' => $this->t('Title'),
@@ -768,6 +798,14 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributors'] ?? '',
+      ];
+      $form['relatedItems'][$i]['contributors_name_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Contributor Name Type'),
+        '#description' => $this->t('Applied to every value in the Contributor(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
+        '#options' => $name_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['contributors_name_type'] ?? '',
       ];
       if ($related_item_count > 1) {
         $form['relatedItems'][$i]['remove_related_item'] = [
@@ -1098,6 +1136,7 @@ class DataciteDataProfile extends DataProfileBase {
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['author'] = $form_state->getValue('author');
+    $this->configuration['authorNameType'] = $form_state->getValue('authorNameType');
     $this->configuration['title'] = $form_state->getValue('title');
     $this->configuration['subtitle'] = $form_state->getValue('subtitle');
     $this->configuration['publisher'] = $form_state->getValue('publisher');
@@ -1108,6 +1147,7 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['hostInstitution'] = $form_state->getValue('hostInstitution');
     $this->configuration['supervisor'] = $form_state->getValue('supervisor');
     $this->configuration['contributor'] = $form_state->getValue('contributor');
+    $this->configuration['contributorNameType'] = $form_state->getValue('contributorNameType');
 
     $date_count = $form_state->get('date_count') ?? 1;
     $dates = [];

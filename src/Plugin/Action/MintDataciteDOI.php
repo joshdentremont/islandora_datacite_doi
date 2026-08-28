@@ -123,6 +123,13 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with the author/contributor nameType selections being
+        // literal DataCite enum values, not Drupal field names.
+        else if ($key === 'datacite.authorNameType' || $key === 'datacite.contributorNameType') {
+          if (!empty($field)) {
+            $data[$key] = $field;
+          }
+        }
         // Deal with funder being a paragraph reference.
         else if ($key === 'datacite.funder') {
           if ($this->entity->hasField($field)) {
@@ -234,6 +241,8 @@ class MintDataciteDOI extends MintIdentifier {
               'related_identifier_type' => $ri['related_identifier_type'] ?? '',
               'number_type' => $ri['number_type'] ?? '',
               'contributor_type' => $ri['contributor_type'] ?? '',
+              'creators_name_type' => $ri['creators_name_type'] ?? '',
+              'contributors_name_type' => $ri['contributors_name_type'] ?? '',
             ];
             foreach (['identifier_value', 'creators', 'title', 'publication_year', 'volume', 'issue', 'number', 'first_page', 'last_page', 'publisher', 'edition', 'contributors'] as $sub_key) {
               $field_name = $ri[$sub_key] ?? '';

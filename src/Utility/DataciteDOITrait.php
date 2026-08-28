@@ -142,7 +142,11 @@ trait DataciteDOITrait {
     $creators = $body->addChild('creators');
     foreach ($data["datacite.author"] as $auth) {
       $creator = $creators->addChild('creator');
-      $creator->addChild('creatorName', $auth["value"])->addAttribute('nameType', 'Personal');
+      $creatorName = $creator->addChild('creatorName', $auth["value"]);
+      // nameType is optional; only set it if the admin configured one.
+      if (!empty($data["datacite.authorNameType"])) {
+        $creatorName->addAttribute('nameType', $data["datacite.authorNameType"]);
+      }
       // Add ORCID if available.
       if (array_key_exists("orcid", $auth)) {
         $id = $creator->addChild('nameIdentifier', $auth["orcid"]);
@@ -237,7 +241,11 @@ trait DataciteDOITrait {
           $contributorType = "Other";
         }
         $contributor->addAttribute('contributorType', $contributorType);
-        $contributor->addChild('contributorName', $contrib["value"])->addAttribute('nameType', 'Personal');
+        $contributorName = $contributor->addChild('contributorName', $contrib["value"]);
+        // nameType is optional; only set it if the admin configured one.
+        if (!empty($data["datacite.contributorNameType"])) {
+          $contributorName->addAttribute('nameType', $data["datacite.contributorNameType"]);
+        }
         // Add ORCID if available.
         if (array_key_exists("orcid", $contrib)) {
           $id = $contributor->addChild('nameIdentifier', $contrib["orcid"]);
@@ -390,7 +398,11 @@ trait DataciteDOITrait {
             if (empty($creatorName)) {
               continue;
             }
-            $creatorsEl->addChild('creator')->addChild('creatorName', $creatorName)->addAttribute('nameType', 'Personal');
+            $riCreatorName = $creatorsEl->addChild('creator')->addChild('creatorName', $creatorName);
+            // nameType is optional; only set it if the admin configured one.
+            if (!empty($ri['creators_name_type'])) {
+              $riCreatorName->addAttribute('nameType', $ri['creators_name_type']);
+            }
           }
         }
         if (!empty($ri['title'])) {
@@ -431,7 +443,11 @@ trait DataciteDOITrait {
             }
             $riContributor = $riContributorsEl->addChild('contributor');
             $riContributor->addAttribute('contributorType', $ri['contributor_type'] ?: 'Other');
-            $riContributor->addChild('contributorName', $contributorName)->addAttribute('nameType', 'Personal');
+            $riContributorName = $riContributor->addChild('contributorName', $contributorName);
+            // nameType is optional; only set it if the admin configured one.
+            if (!empty($ri['contributors_name_type'])) {
+              $riContributorName->addAttribute('nameType', $ri['contributors_name_type']);
+            }
           }
         }
       }
