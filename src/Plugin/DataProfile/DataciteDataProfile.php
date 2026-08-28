@@ -49,6 +49,14 @@ class DataciteDataProfile extends DataProfileBase {
   ];
 
   /**
+   * Keys of the sub-fields stored for each repeatable geolocation entry.
+   */
+  const GEOLOCATION_KEYS = [
+    'place',
+    'point',
+  ];
+
+  /**
    * Keys of the sub-fields stored for each repeatable related identifier
    * entry.
    */
@@ -112,6 +120,7 @@ class DataciteDataProfile extends DataProfileBase {
       'rights' => NULL,
       'abstract' => NULL,
       'note' => NULL,
+      'geoLocations' => [],
       'funder' => NULL,
       'relatedItems' => [],
     ];
@@ -514,6 +523,83 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['note'],
     ];
+
+    $form['geoLocations'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Geographic Locations'),
+      '#description' => $this->t('Each entry becomes one DataCite geoLocation. A place name and a point are independent — fill in either or both. If you fill in both on the same entry, they are combined together in that one geoLocation; add separate entries if you want an unpaired place and point instead.'),
+      '#prefix' => '<div id="geolocations-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    $geolocation_count = $form_state->get('geolocation_count');
+    $geolocation_values = $form_state->get('geolocation_values');
+
+    if ($geolocation_count === NULL || $geolocation_values === NULL) {
+      $saved = $this->configuration['geoLocations'] ?? [];
+      $geolocation_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('geolocation_values', $geolocation_values);
+      $form_state->set('geolocation_count', count($geolocation_values));
+      $geolocation_count = count($geolocation_values);
+    }
+
+    $form['geoLocations'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Geographic Locations'),
+      '#description' => $this->t('Each entry becomes one DataCite geoLocation. A place name and a point are independent — fill in either or both. If you fill in both on the same entry, they are combined together in that one geoLocation; add separate entries if you want an unpaired place and point instead.'),
+      '#prefix' => '<div id="geolocations-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    for ($i = 0; $i < $geolocation_count; $i++) {
+      $saved_value = $geolocation_values[$i] ?? [];
+      $form['geoLocations'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Geographic Location @num', ['@num' => $i + 1]),
+      ];
+      $form['geoLocations'][$i]['place'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Place Name'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['place'] ?? '',
+      ];
+      $form['geoLocations'][$i]['point'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Point'),
+        '#description' => $this->t('A Geolocation-module field holding a latitude/longitude point.'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['point'] ?? '',
+      ];
+      if ($geolocation_count > 1) {
+        $form['geoLocations'][$i]['remove_geolocation'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_geolocation_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addGeoLocationCallback'],
+            'wrapper' => 'geolocations-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeGeoLocationSubmit']],
+          '#limit_validation_errors' => [['data', 'geoLocations']],
+        ];
+      }
+    }
+
+    $form['geoLocations']['add_geolocation'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another geographic location'),
+      '#submit' => [[$this, 'addGeoLocationSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addGeoLocationCallback'],
+        'wrapper' => 'geolocations-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'geoLocations']],
+    ];
+
     $form['funder'] = [
       '#title' => $this->t('Funder(s)'),
       '#description' => $this->t('Paragraph field containing funder information. Each referenced paragraph should have a field_funder_name sub-field (the funder\'s name) and may have a field_funder_reference_number sub-field (the award/grant number).'),
@@ -770,6 +856,65 @@ class DataciteDataProfile extends DataProfileBase {
   }
 
   /**
+   * Extracts the geolocation sub-field values from a submitted form item.
+   */
+  private function extractGeoLocationValues(array $item): array {
+    $values = [];
+    foreach (self::GEOLOCATION_KEYS as $key) {
+      $values[$key] = $item[$key] ?? '';
+    }
+    return $values;
+  }
+
+  public function addGeoLocationSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'geoLocations']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractGeoLocationValues($item);
+      }
+    }
+    $values[] = [];
+    $form_state->set('geolocation_values', $values);
+    $form_state->set('geolocation_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another geographic location" button.
+   */
+  public function addGeoLocationCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['geoLocations'];
+  }
+
+  /**
+   * Submit handler for the "Remove" geolocation button.
+   */
+  public function removeGeoLocationSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_geolocation_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'geoLocations']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractGeoLocationValues($item);
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['geoLocations']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('geolocation_values', $values);
+    $form_state->set('geolocation_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
    * Extracts the date sub-field values from a submitted form item.
    */
   private function extractDateValues(array $item): array {
@@ -1008,6 +1153,18 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['rights'] = $form_state->getValue('rights');
     $this->configuration['abstract'] = $form_state->getValue('abstract');
     $this->configuration['note'] = $form_state->getValue('note');
+
+    $geolocation_count = $form_state->get('geolocation_count') ?? 1;
+    $geoLocations = [];
+    for ($i = 0; $i < $geolocation_count; $i++) {
+      $item = $form_state->getValue(['geoLocations', $i]) ?? [];
+      $entry = $this->extractGeoLocationValues($item);
+      if (!empty($entry['place']) || !empty($entry['point'])) {
+        $geoLocations[] = $entry;
+      }
+    }
+    $this->configuration['geoLocations'] = $geoLocations;
+
     $this->configuration['funder'] = $form_state->getValue('funder');
 
     $related_item_count = $form_state->get('related_item_count') ?? 1;

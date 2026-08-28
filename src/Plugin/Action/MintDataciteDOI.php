@@ -145,6 +145,36 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with geolocations being a repeatable set of a place name
+        // field and a Geolocation-module field (holding lat/lng).
+        else if ($key === 'datacite.geoLocations') {
+          $geoLocations = [];
+          foreach ($field as $geo) {
+            $entry = [];
+            if (!empty($geo['place']) && $this->entity->hasField($geo['place'])) {
+              $entity_field = $this->entity->get($geo['place']);
+              if (!$entity_field->isEmpty()) {
+                $entry['place'] = $entity_field->getString();
+              }
+            }
+            if (!empty($geo['point']) && $this->entity->hasField($geo['point'])) {
+              $entity_field = $this->entity->get($geo['point']);
+              if (!$entity_field->isEmpty()) {
+                $point_value = $entity_field->getValue()[0] ?? [];
+                if (!empty($point_value['lat']) && !empty($point_value['lng'])) {
+                  $entry['latitude'] = $point_value['lat'];
+                  $entry['longitude'] = $point_value['lng'];
+                }
+              }
+            }
+            if (!empty($entry)) {
+              $geoLocations[] = $entry;
+            }
+          }
+          if (!empty($geoLocations)) {
+            $data[$key] = $geoLocations;
+          }
+        }
         // Deal with dates being a repeatable set of a profile-level
         // date-type value plus one Drupal field selection for the date.
         else if ($key === 'datacite.dates') {

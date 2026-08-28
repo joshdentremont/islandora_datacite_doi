@@ -341,6 +341,22 @@ trait DataciteDOITrait {
       $descriptions->addchild('description', $data["datacite.note"][0]["value"])->addAttribute('descriptionType', 'Other');
     }
 
+    // Geographic Locations.
+    if (array_key_exists("datacite.geoLocations", $data) && !empty($data["datacite.geoLocations"])) {
+      $geoLocationsEl = $body->addChild('geoLocations');
+      foreach ($data["datacite.geoLocations"] as $geo) {
+        $geoLocation = $geoLocationsEl->addChild('geoLocation');
+        if (!empty($geo['place'])) {
+          $geoLocation->addChild('geoLocationPlace', $geo['place']);
+        }
+        if (!empty($geo['latitude']) && !empty($geo['longitude'])) {
+          $point = $geoLocation->addChild('geoLocationPoint');
+          $point->addChild('pointLatitude', $geo['latitude']);
+          $point->addChild('pointLongitude', $geo['longitude']);
+        }
+      }
+    }
+
     // Funding References (paragraphs with a funder name and award number).
     if (array_key_exists("datacite.funder", $data)) {
       $fundingReferences = $body->addChild('fundingReferences');
