@@ -40,6 +40,8 @@ class DataciteDataProfile extends DataProfileBase {
     'contributor_type',
     'contributors',
     'contributors_name_type',
+    'typed_contributors',
+    'typed_contributors_name_type',
   ];
 
   /**
@@ -1011,7 +1013,7 @@ class DataciteDataProfile extends DataProfileBase {
       ];
       $form['relatedItems'][$i]['contributorGroup'] = [
         '#type' => 'fieldset',
-        '#title' => $this->t('Contributor'),
+        '#title' => $this->t('Contributor (Fixed Type)'),
       ];
       $form['relatedItems'][$i]['contributorGroup']['contributors'] = [
         '#type' => 'select',
@@ -1036,6 +1038,26 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $name_type_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributors_name_type'] ?? '',
+      ];
+      $form['relatedItems'][$i]['typedContributorGroup'] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Contributor (Typed Relation)'),
+      ];
+      $form['relatedItems'][$i]['typedContributorGroup']['typed_contributors'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Contributor(s)'),
+        '#description' => $this->t('A typed relation field to a person taxonomy term, where the contributor type varies per value (mapped from the field\'s relation type to a DataCite contributorType; unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['typed_contributors'] ?? '',
+      ];
+      $form['relatedItems'][$i]['typedContributorGroup']['typed_contributors_name_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Contributor Name Type'),
+        '#description' => $this->t('Applied to every value in the Contributor(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
+        '#options' => $name_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['typed_contributors_name_type'] ?? '',
       ];
       if ($related_item_count > 1) {
         $form['relatedItems'][$i]['remove_related_item'] = [
@@ -1483,15 +1505,16 @@ class DataciteDataProfile extends DataProfileBase {
    * Extracts the related item sub-field values from a submitted form item.
    */
   private function extractRelatedItemValues(array $item): array {
-    // creatorGroup/numberGroup/contributorGroup are form-only sub-fieldsets
-    // that group a field with the type(s) that apply to it; flatten them
-    // back out so the stored configuration keeps its plain RELATED_ITEM_KEYS
-    // shape.
+    // creatorGroup/numberGroup/contributorGroup/typedContributorGroup are
+    // form-only sub-fieldsets that group a field with the type(s) that
+    // apply to it; flatten them back out so the stored configuration keeps
+    // its plain RELATED_ITEM_KEYS shape.
     $flattened = $item;
-    unset($flattened['creatorGroup'], $flattened['numberGroup'], $flattened['contributorGroup']);
+    unset($flattened['creatorGroup'], $flattened['numberGroup'], $flattened['contributorGroup'], $flattened['typedContributorGroup']);
     $flattened += $item['creatorGroup'] ?? [];
     $flattened += $item['numberGroup'] ?? [];
     $flattened += $item['contributorGroup'] ?? [];
+    $flattened += $item['typedContributorGroup'] ?? [];
 
     $values = [];
     foreach (self::RELATED_ITEM_KEYS as $key) {

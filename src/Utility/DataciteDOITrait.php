@@ -430,18 +430,48 @@ trait DataciteDOITrait {
         if (!empty($ri['edition'])) {
           $relatedItem->addChild('edition', $ri['edition']);
         }
-        if (!empty($ri['contributors'])) {
+        // Fixed-type and typed relation contributors share the same single
+        // <contributors> wrapper a relatedItem is allowed.
+        if (!empty($ri['contributors']) || !empty($ri['typed_contributors'])) {
           $riContributorsEl = $relatedItem->addChild('contributors');
-          foreach ($ri['contributors'] as $contributorName) {
-            if (empty($contributorName)) {
-              continue;
+
+          // Fixed-type contributors.
+          if (!empty($ri['contributors'])) {
+            foreach ($ri['contributors'] as $contributorName) {
+              if (empty($contributorName)) {
+                continue;
+              }
+              $riContributor = $riContributorsEl->addChild('contributor');
+              $riContributor->addAttribute('contributorType', $ri['contributor_type'] ?: 'Other');
+              $riContributorName = $riContributor->addChild('contributorName', $contributorName);
+              // nameType is optional; only set it if the admin configured one.
+              if (!empty($ri['contributors_name_type'])) {
+                $riContributorName->addAttribute('nameType', $ri['contributors_name_type']);
+              }
             }
-            $riContributor = $riContributorsEl->addChild('contributor');
-            $riContributor->addAttribute('contributorType', $ri['contributor_type'] ?: 'Other');
-            $riContributorName = $riContributor->addChild('contributorName', $contributorName);
-            // nameType is optional; only set it if the admin configured one.
-            if (!empty($ri['contributors_name_type'])) {
-              $riContributorName->addAttribute('nameType', $ri['contributors_name_type']);
+          }
+
+          // Typed relation contributors: type varies per value via
+          // rel_type, same as the top-level "contributor" field.
+          if (!empty($ri['typed_contributors'])) {
+            foreach ($ri['typed_contributors'] as $tc) {
+              $riTypedContributor = $riContributorsEl->addChild('contributor');
+              $typedContributorType = $tc['rel_type'] ?? '';
+              if (!in_array($typedContributorType, $availableContributorTypes)) {
+                $typedContributorType = 'Other';
+              }
+              $riTypedContributor->addAttribute('contributorType', $typedContributorType);
+              $riTypedContributorName = $riTypedContributor->addChild('contributorName', $tc['value']);
+              // nameType is optional; only set it if the admin configured one.
+              if (!empty($ri['typed_contributors_name_type'])) {
+                $riTypedContributorName->addAttribute('nameType', $ri['typed_contributors_name_type']);
+              }
+              // Add ORCID if available.
+              if (!empty($tc['orcid'])) {
+                $id = $riTypedContributor->addChild('nameIdentifier', $tc['orcid']);
+                $id->addAttribute('nameIdentifierScheme', 'ORCID');
+                $id->addAttribute('schemeURI', 'https://orcid.org');
+              }
             }
           }
         }

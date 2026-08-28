@@ -330,6 +330,7 @@ class MintDataciteDOI extends MintIdentifier {
               'contributor_type' => $ri['contributor_type'] ?? '',
               'creators_name_type' => $ri['creators_name_type'] ?? '',
               'contributors_name_type' => $ri['contributors_name_type'] ?? '',
+              'typed_contributors_name_type' => $ri['typed_contributors_name_type'] ?? '',
             ];
             foreach (['identifier_value', 'creators', 'title', 'publication_year', 'volume', 'issue', 'number', 'first_page', 'last_page', 'publisher', 'edition', 'contributors'] as $sub_key) {
               $field_name = $ri[$sub_key] ?? '';
@@ -345,6 +346,35 @@ class MintDataciteDOI extends MintIdentifier {
               }
               else {
                 $entry[$sub_key] = $entity_field->getString();
+              }
+            }
+            // Typed relation contributors: type varies per value via the
+            // field's own rel_type property, same as the top-level
+            // "contributor" field.
+            if (!empty($ri['typed_contributors']) && $this->entity->hasField($ri['typed_contributors'])) {
+              $entity_field = $this->entity->get($ri['typed_contributors']);
+              if (!$entity_field->isEmpty()) {
+                $typedContributors = [];
+                foreach ($entity_field->getValue() as $field_item) {
+                  if (!array_key_exists('target_id', $field_item)) {
+                    continue;
+                  }
+                  $term = Term::load($field_item['target_id']);
+                  if (!$term) {
+                    continue;
+                  }
+                  $typedContributor = [
+                    'value' => $term->label(),
+                    'rel_type' => $field_item['rel_type'] ?? '',
+                  ];
+                  if ($term->hasField('field_orcid') && !$term->get('field_orcid')->isEmpty()) {
+                    $typedContributor['orcid'] = $term->get('field_orcid')->uri;
+                  }
+                  $typedContributors[] = $typedContributor;
+                }
+                if (!empty($typedContributors)) {
+                  $entry['typed_contributors'] = $typedContributors;
+                }
               }
             }
             $relatedItems[] = $entry;
