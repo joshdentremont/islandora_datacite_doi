@@ -145,6 +145,27 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with dates being a repeatable set of a profile-level
+        // date-type value plus one Drupal field selection for the date.
+        else if ($key === 'datacite.dates') {
+          $dates = [];
+          foreach ($field as $d) {
+            if (empty($d['date_type']) || empty($d['date_value']) || !$this->entity->hasField($d['date_value'])) {
+              continue;
+            }
+            $entity_field = $this->entity->get($d['date_value']);
+            if ($entity_field->isEmpty()) {
+              continue;
+            }
+            $dates[] = [
+              'date_type' => $d['date_type'],
+              'value' => $entity_field->getString(),
+            ];
+          }
+          if (!empty($dates)) {
+            $data[$key] = $dates;
+          }
+        }
         // Deal with related identifiers being a repeatable set of
         // profile-level relation/identifier-type values plus one Drupal
         // field selection for the identifier's value.

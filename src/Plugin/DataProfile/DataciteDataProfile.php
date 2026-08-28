@@ -41,6 +41,14 @@ class DataciteDataProfile extends DataProfileBase {
   ];
 
   /**
+   * Keys of the sub-fields stored for each repeatable date entry.
+   */
+  const DATE_KEYS = [
+    'date_type',
+    'date_value',
+  ];
+
+  /**
    * Keys of the sub-fields stored for each repeatable related identifier
    * entry.
    */
@@ -94,7 +102,7 @@ class DataciteDataProfile extends DataProfileBase {
       'hostInstitution' => NULL,
       'supervisor' => NULL,
       'contributor' => NULL,
-      'dateIssued' => NULL,
+      'dates' => [],
       'language' => NULL,
       'identifiers' => [],
       'relatedIdentifiers' => [],
@@ -210,14 +218,82 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['contributor'],
     ];
-    $form['dateIssued'] = [
-      '#title' => $this->t('Date Issued'),
-      '#description' => $this->t('Issue Date for the object. X\'s in date will be reaplced with 0\'s. If the date still does not match the format YYYY-MM-DD, the first 4 digit number will be used, and the full text of this field will be added to the dateInformation attribute.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['dateIssued'],
+    $date_type_options = array_combine(DataciteVocabularies::DATE_TYPES, DataciteVocabularies::DATE_TYPES);
+
+    $form['dates'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Dates'),
+      '#prefix' => '<div id="dates-wrapper">',
+      '#suffix' => '</div>',
     ];
+
+    $date_count = $form_state->get('date_count');
+    $date_values = $form_state->get('date_values');
+
+    if ($date_count === NULL || $date_values === NULL) {
+      $saved = $this->configuration['dates'] ?? [];
+      $date_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('date_values', $date_values);
+      $form_state->set('date_count', count($date_values));
+      $date_count = count($date_values);
+    }
+
+    $form['dates'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Dates'),
+      '#prefix' => '<div id="dates-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    for ($i = 0; $i < $date_count; $i++) {
+      $saved_value = $date_values[$i] ?? [];
+      $form['dates'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Date @num', ['@num' => $i + 1]),
+      ];
+      $form['dates'][$i]['date_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Date Type'),
+        '#options' => $date_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['date_type'] ?? '',
+      ];
+      $form['dates'][$i]['date_value'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Date'),
+        '#description' => $this->t('X\'s in the date will be replaced with 0\'s. If the result doesn\'t match the format YYYY-MM-DD, just the first 4 digit year will be used, and the full original text will be added to the dateInformation attribute.'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['date_value'] ?? '',
+      ];
+      if ($date_count > 1) {
+        $form['dates'][$i]['remove_date'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_date_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addDateCallback'],
+            'wrapper' => 'dates-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeDateSubmit']],
+          '#limit_validation_errors' => [['data', 'dates']],
+        ];
+      }
+    }
+
+    $form['dates']['add_date'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another date'),
+      '#submit' => [[$this, 'addDateSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addDateCallback'],
+        'wrapper' => 'dates-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'dates']],
+    ];
+
     $form['language'] = [
       '#title' => $this->t('Language'),
       '#description' => $this->t('The primary language of the resource.'),
@@ -694,6 +770,65 @@ class DataciteDataProfile extends DataProfileBase {
   }
 
   /**
+   * Extracts the date sub-field values from a submitted form item.
+   */
+  private function extractDateValues(array $item): array {
+    $values = [];
+    foreach (self::DATE_KEYS as $key) {
+      $values[$key] = $item[$key] ?? '';
+    }
+    return $values;
+  }
+
+  public function addDateSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'dates']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractDateValues($item);
+      }
+    }
+    $values[] = [];
+    $form_state->set('date_values', $values);
+    $form_state->set('date_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another date" button.
+   */
+  public function addDateCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['dates'];
+  }
+
+  /**
+   * Submit handler for the "Remove" date button.
+   */
+  public function removeDateSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_date_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'dates']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractDateValues($item);
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['dates']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('date_values', $values);
+    $form_state->set('date_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
    * Extracts the related identifier sub-field values from a submitted form
    * item.
    */
@@ -828,7 +963,18 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['hostInstitution'] = $form_state->getValue('hostInstitution');
     $this->configuration['supervisor'] = $form_state->getValue('supervisor');
     $this->configuration['contributor'] = $form_state->getValue('contributor');
-    $this->configuration['dateIssued'] = $form_state->getValue('dateIssued');
+
+    $date_count = $form_state->get('date_count') ?? 1;
+    $dates = [];
+    for ($i = 0; $i < $date_count; $i++) {
+      $item = $form_state->getValue(['dates', $i]) ?? [];
+      $entry = $this->extractDateValues($item);
+      if (!empty($entry['date_type']) && !empty($entry['date_value'])) {
+        $dates[] = $entry;
+      }
+    }
+    $this->configuration['dates'] = $dates;
+
     $this->configuration['language'] = $form_state->getValue('language');
 
     $identifier_count = $form_state->get('identifier_count') ?? 1;

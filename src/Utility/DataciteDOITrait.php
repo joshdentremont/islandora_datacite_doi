@@ -247,24 +247,27 @@ trait DataciteDOITrait {
       }
     }
 
-    // Dates.
-    $dates = $body->addChild('dates');
+    // Dates. Each entry's date_type is chosen from DataCite's controlled
+    // vocabulary directly in the data profile form.
+    if (array_key_exists("datacite.dates", $data) && !empty($data["datacite.dates"])) {
+      $dates = $body->addChild('dates');
+      foreach ($data["datacite.dates"] as $d) {
+        $raw = $d['value'];
+        $normalized = str_replace('X', '0', $raw);
+        // If the date isn't in the form YYYY-MM-DD, just pull the year.
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $normalized)) {
+          $years = array();
+          preg_match('/\b[\dX]{4}\b/', $normalized, $years);
+          $normalized = $years[0] ?? $normalized;
+        }
 
-    // Date Issued.
-    if (array_key_exists("datacite.dateIssued", $data)) {
-      $di = str_replace('X', '0', $data["datacite.dateIssued"][0]["value"]);
-      $years = array();
-      // If the date is not a standard date in the form YYYY-MM-DD, just pull the year
-      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data["datacite.year"][0]["value"])) {
-        preg_match('/\b[\dX]{4}\b/', $di, $years);
-        $di = $years[0];
+        $date = $dates->addChild('date', $normalized);
+        $date->addAttribute('dateType', $d['date_type']);
+        // If our stored date differs from the original, put the original in the dateInformation attribute.
+        if ($normalized !== $raw) {
+          $date->addAttribute('dateInformation', $raw);
+        }
       }
-
-      $date = $dates->addChild('date', $di);
-      $date->addAttribute('dateType', 'Issued');
-      // If our stored date differs from the original, put the original in the dateInformation attribute
-      if ($di !== $data["datacite.dateIssued"][0]["value"])
-        $date->addAttribute('dateInformation', $data["datacite.dateIssued"][0]["value"]);
     }
 
     // Language.

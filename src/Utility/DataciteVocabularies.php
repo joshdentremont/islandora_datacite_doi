@@ -125,6 +125,24 @@ final class DataciteVocabularies {
   ];
 
   /**
+   * Valid values for dateType.
+   */
+  const DATE_TYPES = [
+    "Accepted",
+    "Available",
+    "Copyrighted",
+    "Collected",
+    "Coverage",
+    "Created",
+    "Issued",
+    "Submitted",
+    "Updated",
+    "Valid",
+    "Withdrawn",
+    "Other",
+  ];
+
+  /**
    * Valid values for numberType, the attribute on relatedItem's "number".
    */
   const NUMBER_TYPES = [
