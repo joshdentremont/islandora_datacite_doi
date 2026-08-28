@@ -36,6 +36,8 @@ class DataciteDataProfile extends DataProfileBase {
     'last_page',
     'publisher',
     'edition',
+    'contributor_type',
+    'contributors',
   ];
 
   /**
@@ -353,6 +355,7 @@ class DataciteDataProfile extends DataProfileBase {
     $related_item_type_options = array_combine(DataciteVocabularies::RESOURCE_TYPES, DataciteVocabularies::RESOURCE_TYPES);
     $related_identifier_type_options = array_combine(DataciteVocabularies::IDENTIFIER_TYPES, DataciteVocabularies::IDENTIFIER_TYPES);
     $number_type_options = array_combine(DataciteVocabularies::NUMBER_TYPES, DataciteVocabularies::NUMBER_TYPES);
+    $contributor_type_options = array_combine(DataciteVocabularies::CONTRIBUTOR_TYPES, DataciteVocabularies::CONTRIBUTOR_TYPES);
 
     $form['relatedItems'] = [
       '#type' => 'fieldset',
@@ -493,6 +496,22 @@ class DataciteDataProfile extends DataProfileBase {
         '#options' => $available_fields,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['edition'] ?? '',
+      ];
+      $form['relatedItems'][$i]['contributor_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Contributor Type'),
+        '#description' => $this->t('Contributor type applied to every value in the Contributor(s) field below.'),
+        '#options' => $contributor_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['contributor_type'] ?? '',
+      ];
+      $form['relatedItems'][$i]['contributors'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Contributor(s)'),
+        '#description' => $this->t('Field holding the related item\'s contributor(s). If the field has multiple values, each becomes a separate contributor.'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['contributors'] ?? '',
       ];
       if ($related_item_count > 1) {
         $form['relatedItems'][$i]['remove_related_item'] = [

@@ -399,6 +399,17 @@ trait DataciteDOITrait {
         if (!empty($ri['edition'])) {
           $relatedItem->addChild('edition', $ri['edition']);
         }
+        if (!empty($ri['contributors'])) {
+          $riContributorsEl = $relatedItem->addChild('contributors');
+          foreach ($ri['contributors'] as $contributorName) {
+            if (empty($contributorName)) {
+              continue;
+            }
+            $riContributor = $riContributorsEl->addChild('contributor');
+            $riContributor->addAttribute('contributorType', $ri['contributor_type'] ?: 'Other');
+            $riContributor->addChild('contributorName', $contributorName)->addAttribute('nameType', 'Personal');
+          }
+        }
       }
     }
 

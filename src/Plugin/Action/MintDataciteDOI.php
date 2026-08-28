@@ -158,8 +158,9 @@ class MintDataciteDOI extends MintIdentifier {
               'related_item_type' => $ri['related_item_type'],
               'related_identifier_type' => $ri['related_identifier_type'] ?? '',
               'number_type' => $ri['number_type'] ?? '',
+              'contributor_type' => $ri['contributor_type'] ?? '',
             ];
-            foreach (['identifier_value', 'creators', 'title', 'publication_year', 'volume', 'issue', 'number', 'first_page', 'last_page', 'publisher', 'edition'] as $sub_key) {
+            foreach (['identifier_value', 'creators', 'title', 'publication_year', 'volume', 'issue', 'number', 'first_page', 'last_page', 'publisher', 'edition', 'contributors'] as $sub_key) {
               $field_name = $ri[$sub_key] ?? '';
               if (empty($field_name) || !$this->entity->hasField($field_name)) {
                 continue;
@@ -168,8 +169,8 @@ class MintDataciteDOI extends MintIdentifier {
               if ($entity_field->isEmpty()) {
                 continue;
               }
-              if ($sub_key === 'creators') {
-                $entry['creators'] = array_column($entity_field->getValue(), 'value');
+              if ($sub_key === 'creators' || $sub_key === 'contributors') {
+                $entry[$sub_key] = array_column($entity_field->getValue(), 'value');
               }
               else {
                 $entry[$sub_key] = $entity_field->getString();
