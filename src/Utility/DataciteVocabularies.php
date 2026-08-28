@@ -136,6 +136,19 @@ final class DataciteVocabularies {
   ];
 
   /**
+   * Valid values for descriptionType. Unlike titleType/nameType, this
+   * attribute is required on every description.
+   */
+  const DESCRIPTION_TYPES = [
+    "Abstract",
+    "Methods",
+    "SeriesInformation",
+    "TableOfContents",
+    "TechnicalInfo",
+    "Other",
+  ];
+
+  /**
    * Valid values for nameType, the attribute on creatorName/contributorName.
    */
   const NAME_TYPES = [

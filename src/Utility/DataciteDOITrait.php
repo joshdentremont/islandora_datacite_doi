@@ -338,17 +338,13 @@ trait DataciteDOITrait {
       $body->addchild('rightsList')->addChild('rights', $data["datacite.rights"][0]["value"]);
     }
 
-    // Descriptions.
-    $descriptions = $body->addChild('descriptions');
-
-    // Abstract.
-    if (array_key_exists("datacite.abstract", $data)) {
-      $descriptions->addchild('description', $data["datacite.abstract"][0]["value"])->addAttribute('descriptionType', 'Abstract');
-    }
-
-    // Other Description (note).
-    if (array_key_exists("datacite.note", $data)) {
-      $descriptions->addchild('description', $data["datacite.note"][0]["value"])->addAttribute('descriptionType', 'Other');
+    // Descriptions. Each entry's description_type is chosen from DataCite's
+    // controlled vocabulary directly in the data profile form.
+    if (array_key_exists("datacite.descriptions", $data) && !empty($data["datacite.descriptions"])) {
+      $descriptions = $body->addChild('descriptions');
+      foreach ($data["datacite.descriptions"] as $desc) {
+        $descriptions->addchild('description', $desc['value'])->addAttribute('descriptionType', $desc['description_type']);
+      }
     }
 
     // Geographic Locations.

@@ -51,6 +51,14 @@ class DataciteDataProfile extends DataProfileBase {
   ];
 
   /**
+   * Keys of the sub-fields stored for each repeatable description entry.
+   */
+  const DESCRIPTION_KEYS = [
+    'description_type',
+    'description_value',
+  ];
+
+  /**
    * Keys of the sub-fields stored for each repeatable date entry.
    */
   const DATE_KEYS = [
@@ -129,8 +137,7 @@ class DataciteDataProfile extends DataProfileBase {
       'format' => NULL,
       'version' => NULL,
       'rights' => NULL,
-      'abstract' => NULL,
-      'note' => NULL,
+      'descriptions' => [],
       'geoLocations' => [],
       'funder' => NULL,
       'relatedItems' => [],
@@ -596,21 +603,79 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['rights'],
     ];
-    $form['abstract'] = [
-      '#title' => $this->t('Abstract'),
-      '#description' => $this->t('A description with it\'s type set to abstract.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['abstract'],
+    $description_type_options = array_combine(DataciteVocabularies::DESCRIPTION_TYPES, DataciteVocabularies::DESCRIPTION_TYPES);
+
+    $form['descriptions'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Descriptions'),
+      '#prefix' => '<div id="descriptions-wrapper">',
+      '#suffix' => '</div>',
     ];
-    $form['note'] = [
-      '#title' => $this->t('Other Description'),
-      '#description' => $this->t('A description with it\'s type set to other.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['note'],
+
+    $description_count = $form_state->get('description_count');
+    $description_values = $form_state->get('description_values');
+
+    if ($description_count === NULL || $description_values === NULL) {
+      $saved = $this->configuration['descriptions'] ?? [];
+      $description_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('description_values', $description_values);
+      $form_state->set('description_count', count($description_values));
+      $description_count = count($description_values);
+    }
+
+    $form['descriptions'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Descriptions'),
+      '#prefix' => '<div id="descriptions-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    for ($i = 0; $i < $description_count; $i++) {
+      $saved_value = $description_values[$i] ?? [];
+      $form['descriptions'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Description @num', ['@num' => $i + 1]),
+      ];
+      $form['descriptions'][$i]['description_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Description Type'),
+        '#options' => $description_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['description_type'] ?? '',
+      ];
+      $form['descriptions'][$i]['description_value'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Description'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['description_value'] ?? '',
+      ];
+      if ($description_count > 1) {
+        $form['descriptions'][$i]['remove_description'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_description_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addDescriptionCallback'],
+            'wrapper' => 'descriptions-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeDescriptionSubmit']],
+          '#limit_validation_errors' => [['data', 'descriptions']],
+        ];
+      }
+    }
+
+    $form['descriptions']['add_description'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another description'),
+      '#submit' => [[$this, 'addDescriptionSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addDescriptionCallback'],
+        'wrapper' => 'descriptions-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'descriptions']],
     ];
 
     $form['geoLocations'] = [
@@ -1079,6 +1144,65 @@ class DataciteDataProfile extends DataProfileBase {
   }
 
   /**
+   * Extracts the description sub-field values from a submitted form item.
+   */
+  private function extractDescriptionValues(array $item): array {
+    $values = [];
+    foreach (self::DESCRIPTION_KEYS as $key) {
+      $values[$key] = $item[$key] ?? '';
+    }
+    return $values;
+  }
+
+  public function addDescriptionSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'descriptions']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractDescriptionValues($item);
+      }
+    }
+    $values[] = [];
+    $form_state->set('description_values', $values);
+    $form_state->set('description_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another description" button.
+   */
+  public function addDescriptionCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['descriptions'];
+  }
+
+  /**
+   * Submit handler for the "Remove" description button.
+   */
+  public function removeDescriptionSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_description_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'descriptions']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractDescriptionValues($item);
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['descriptions']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('description_values', $values);
+    $form_state->set('description_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
    * Extracts the date sub-field values from a submitted form item.
    */
   private function extractDateValues(array $item): array {
@@ -1326,8 +1450,17 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['format'] = $form_state->getValue('format');
     $this->configuration['version'] = $form_state->getValue('version');
     $this->configuration['rights'] = $form_state->getValue('rights');
-    $this->configuration['abstract'] = $form_state->getValue('abstract');
-    $this->configuration['note'] = $form_state->getValue('note');
+
+    $description_count = $form_state->get('description_count') ?? 1;
+    $descriptions = [];
+    for ($i = 0; $i < $description_count; $i++) {
+      $item = $form_state->getValue(['descriptions', $i]) ?? [];
+      $entry = $this->extractDescriptionValues($item);
+      if (!empty($entry['description_type']) && !empty($entry['description_value'])) {
+        $descriptions[] = $entry;
+      }
+    }
+    $this->configuration['descriptions'] = $descriptions;
 
     $geolocation_count = $form_state->get('geolocation_count') ?? 1;
     $geoLocations = [];
