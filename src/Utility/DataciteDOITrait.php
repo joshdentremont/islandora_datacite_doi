@@ -106,7 +106,7 @@ trait DataciteDOITrait {
     // Check if all mandatory fields are available.
     $missing = [];
 
-    if (!array_key_exists("datacite.title", $data) || empty($data["datacite.title"]) || empty($data["datacite.title"][0]["value"])) {
+    if (!array_key_exists("datacite.titles", $data) || empty($data["datacite.titles"])) {
       $missing[] = "Title";
     }
 
@@ -155,13 +155,15 @@ trait DataciteDOITrait {
       }
     }
 
-    // Title.
+    // Titles. Each entry's title_type is chosen from DataCite's controlled
+    // vocabulary directly in the data profile form; left unset, it's the
+    // main title (titleType is omitted, matching DataCite's convention).
     $titles = $body->addChild('titles');
-    $titles->addChild('title', $data["datacite.title"][0]["value"]);
-
-    // Subtitle.
-    if (array_key_exists("datacite.subtitle", $data)) {
-      $titles->addChild('title', $data["datacite.subtitle"][0]["value"])->addAttribute('titleType', 'Subtitle');
+    foreach ($data["datacite.titles"] as $t) {
+      $title = $titles->addChild('title', $t['value']);
+      if (!empty($t['title_type'])) {
+        $title->addAttribute('titleType', $t['title_type']);
+      }
     }
 
     // Publisher.

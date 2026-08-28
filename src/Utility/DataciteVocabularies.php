@@ -125,6 +125,17 @@ final class DataciteVocabularies {
   ];
 
   /**
+   * Valid values for titleType. The main/primary title has no titleType
+   * attribute at all; these apply only to additional titles.
+   */
+  const TITLE_TYPES = [
+    "AlternativeTitle",
+    "Subtitle",
+    "TranslatedTitle",
+    "Other",
+  ];
+
+  /**
    * Valid values for nameType, the attribute on creatorName/contributorName.
    */
   const NAME_TYPES = [

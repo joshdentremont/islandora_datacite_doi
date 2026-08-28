@@ -123,6 +123,27 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with titles being a repeatable set of a profile-level
+        // title-type value plus one Drupal field selection for the title.
+        else if ($key === 'datacite.titles') {
+          $titles = [];
+          foreach ($field as $t) {
+            if (empty($t['title_value']) || !$this->entity->hasField($t['title_value'])) {
+              continue;
+            }
+            $entity_field = $this->entity->get($t['title_value']);
+            if ($entity_field->isEmpty()) {
+              continue;
+            }
+            $titles[] = [
+              'title_type' => $t['title_type'] ?? '',
+              'value' => $entity_field->getString(),
+            ];
+          }
+          if (!empty($titles)) {
+            $data[$key] = $titles;
+          }
+        }
         // Deal with the author/contributor nameType selections being
         // literal DataCite enum values, not Drupal field names.
         else if ($key === 'datacite.authorNameType' || $key === 'datacite.contributorNameType') {

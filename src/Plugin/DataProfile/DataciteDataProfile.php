@@ -43,6 +43,14 @@ class DataciteDataProfile extends DataProfileBase {
   ];
 
   /**
+   * Keys of the sub-fields stored for each repeatable title entry.
+   */
+  const TITLE_KEYS = [
+    'title_type',
+    'title_value',
+  ];
+
+  /**
    * Keys of the sub-fields stored for each repeatable date entry.
    */
   const DATE_KEYS = [
@@ -103,8 +111,7 @@ class DataciteDataProfile extends DataProfileBase {
     return [
       'author' => NULL,
       'authorNameType' => NULL,
-      'title' => NULL,
-      'subtitle' => NULL,
+      'titles' => [],
       'publisher' => NULL,
       'year' => NULL,
       'rtypeGeneral' => NULL,
@@ -157,23 +164,83 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['authorNameType'],
     ];
-    $form['title'] = [
-      '#title' => $this->t('Title'),
-      '#description' => $this->t('Title of the object being given a DOI.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['title'],
-      '#required' => TRUE,
+    $title_type_options = array_combine(DataciteVocabularies::TITLE_TYPES, DataciteVocabularies::TITLE_TYPES);
+
+    $form['titles'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Titles'),
+      '#description' => $this->t('At least one title is required. Leave Title Type unset for the main title; use it to add a subtitle, translated title, alternative title, or other title.'),
+      '#prefix' => '<div id="titles-wrapper">',
+      '#suffix' => '</div>',
     ];
-    $form['subtitle'] = [
-      '#title' => $this->t('Subtitle'),
-      '#description' => $this->t('Subtitle of the object being given a DOI.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['subtitle'],
+
+    $title_count = $form_state->get('title_count');
+    $title_values = $form_state->get('title_values');
+
+    if ($title_count === NULL || $title_values === NULL) {
+      $saved = $this->configuration['titles'] ?? [];
+      $title_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('title_values', $title_values);
+      $form_state->set('title_count', count($title_values));
+      $title_count = count($title_values);
+    }
+
+    $form['titles'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Titles'),
+      '#description' => $this->t('At least one title is required. Leave Title Type unset for the main title; use it to add a subtitle, translated title, alternative title, or other title.'),
+      '#prefix' => '<div id="titles-wrapper">',
+      '#suffix' => '</div>',
     ];
+
+    for ($i = 0; $i < $title_count; $i++) {
+      $saved_value = $title_values[$i] ?? [];
+      $form['titles'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Title @num', ['@num' => $i + 1]),
+      ];
+      $form['titles'][$i]['title_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Title Type'),
+        '#options' => $title_type_options,
+        '#empty_option' => $this->t('- Main Title -'),
+        '#default_value' => $saved_value['title_type'] ?? '',
+      ];
+      $form['titles'][$i]['title_value'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Title'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['title_value'] ?? '',
+      ];
+      if ($title_count > 1) {
+        $form['titles'][$i]['remove_title'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_title_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addTitleCallback'],
+            'wrapper' => 'titles-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeTitleSubmit']],
+          '#limit_validation_errors' => [['data', 'titles']],
+        ];
+      }
+    }
+
+    $form['titles']['add_title'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another title'),
+      '#submit' => [[$this, 'addTitleSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addTitleCallback'],
+        'wrapper' => 'titles-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'titles']],
+    ];
+
     $form['publisher'] = [
       '#title' => $this->t('Publisher'),
       '#description' => $this->t('Name of the publisher. If publisher is a taxonomy term and the taxonomy has a URL field called field_ror, that value is automatically pulled as well.'),
@@ -953,6 +1020,65 @@ class DataciteDataProfile extends DataProfileBase {
   }
 
   /**
+   * Extracts the title sub-field values from a submitted form item.
+   */
+  private function extractTitleValues(array $item): array {
+    $values = [];
+    foreach (self::TITLE_KEYS as $key) {
+      $values[$key] = $item[$key] ?? '';
+    }
+    return $values;
+  }
+
+  public function addTitleSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'titles']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractTitleValues($item);
+      }
+    }
+    $values[] = [];
+    $form_state->set('title_values', $values);
+    $form_state->set('title_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another title" button.
+   */
+  public function addTitleCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['titles'];
+  }
+
+  /**
+   * Submit handler for the "Remove" title button.
+   */
+  public function removeTitleSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_title_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'titles']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractTitleValues($item);
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['titles']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('title_values', $values);
+    $form_state->set('title_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
    * Extracts the date sub-field values from a submitted form item.
    */
   private function extractDateValues(array $item): array {
@@ -1137,8 +1263,17 @@ class DataciteDataProfile extends DataProfileBase {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['author'] = $form_state->getValue('author');
     $this->configuration['authorNameType'] = $form_state->getValue('authorNameType');
-    $this->configuration['title'] = $form_state->getValue('title');
-    $this->configuration['subtitle'] = $form_state->getValue('subtitle');
+    $title_count = $form_state->get('title_count') ?? 1;
+    $titles = [];
+    for ($i = 0; $i < $title_count; $i++) {
+      $item = $form_state->getValue(['titles', $i]) ?? [];
+      $entry = $this->extractTitleValues($item);
+      if (!empty($entry['title_value'])) {
+        $titles[] = $entry;
+      }
+    }
+    $this->configuration['titles'] = $titles;
+
     $this->configuration['publisher'] = $form_state->getValue('publisher');
     $this->configuration['year'] = $form_state->getValue('year');
     $this->configuration['rtypeGeneral'] = $form_state->getValue('rtypeGeneral');
