@@ -145,6 +145,30 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with related identifiers being a repeatable set of
+        // profile-level relation/identifier-type values plus one Drupal
+        // field selection for the identifier's value.
+        else if ($key === 'datacite.relatedIdentifiers') {
+          $relatedIdentifiers = [];
+          foreach ($field as $rid) {
+            if (empty($rid['relation_type']) || empty($rid['identifier_type']) || empty($rid['identifier_value']) || !$this->entity->hasField($rid['identifier_value'])) {
+              continue;
+            }
+            $entity_field = $this->entity->get($rid['identifier_value']);
+            if ($entity_field->isEmpty()) {
+              continue;
+            }
+            $relatedIdentifiers[] = [
+              'relation_type' => $rid['relation_type'],
+              'identifier_type' => $rid['identifier_type'],
+              'resource_type_general' => $rid['resource_type_general'] ?? '',
+              'value' => $entity_field->getString(),
+            ];
+          }
+          if (!empty($relatedIdentifiers)) {
+            $data[$key] = $relatedIdentifiers;
+          }
+        }
         // Deal with related items being a repeatable set of Drupal field
         // selections plus profile-level relation/type/identifier-type values.
         else if ($key === 'datacite.relatedItems') {

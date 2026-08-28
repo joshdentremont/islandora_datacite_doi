@@ -41,6 +41,17 @@ class DataciteDataProfile extends DataProfileBase {
   ];
 
   /**
+   * Keys of the sub-fields stored for each repeatable related identifier
+   * entry.
+   */
+  const RELATED_IDENTIFIER_KEYS = [
+    'relation_type',
+    'identifier_type',
+    'resource_type_general',
+    'identifier_value',
+  ];
+
+  /**
    * Datacite data profile constructor.
    *
    * @param array $configuration
@@ -86,7 +97,7 @@ class DataciteDataProfile extends DataProfileBase {
       'dateIssued' => NULL,
       'language' => NULL,
       'identifiers' => [],
-      'identical' => NULL,
+      'relatedIdentifiers' => [],
       'size' => NULL,
       'format' => NULL,
       'version' => NULL,
@@ -286,14 +297,99 @@ class DataciteDataProfile extends DataProfileBase {
       '#limit_validation_errors' => [['data', 'identifiers']],
     ];
 
-    $form['identical'] = [
-      '#title' => $this->t('Is Identical To DOI'),
-      '#description' => $this->t('DOI field for DOI of identical object. For example, a publisher\'s DOI'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['identical'],
+    $relation_type_options = array_combine(DataciteVocabularies::RELATION_TYPES, DataciteVocabularies::RELATION_TYPES);
+    $related_identifier_type_options = array_combine(DataciteVocabularies::IDENTIFIER_TYPES, DataciteVocabularies::IDENTIFIER_TYPES);
+    $related_identifier_resource_type_options = array_combine(DataciteVocabularies::RESOURCE_TYPES, DataciteVocabularies::RESOURCE_TYPES);
+
+    $form['relatedIdentifiers'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Related Identifiers'),
+      '#prefix' => '<div id="related-identifiers-wrapper">',
+      '#suffix' => '</div>',
     ];
+
+    $related_identifier_count = $form_state->get('related_identifier_count');
+    $related_identifier_values = $form_state->get('related_identifier_values');
+
+    if ($related_identifier_count === NULL || $related_identifier_values === NULL) {
+      $saved = $this->configuration['relatedIdentifiers'] ?? [];
+      $related_identifier_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('related_identifier_values', $related_identifier_values);
+      $form_state->set('related_identifier_count', count($related_identifier_values));
+      $related_identifier_count = count($related_identifier_values);
+    }
+
+    $form['relatedIdentifiers'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Related Identifiers'),
+      '#prefix' => '<div id="related-identifiers-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    for ($i = 0; $i < $related_identifier_count; $i++) {
+      $saved_value = $related_identifier_values[$i] ?? [];
+      $form['relatedIdentifiers'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Related Identifier @num', ['@num' => $i + 1]),
+      ];
+      $form['relatedIdentifiers'][$i]['relation_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Relation Type'),
+        '#description' => $this->t('How the resource relates to this identifier, e.g. "IsIdenticalTo" for a publisher\'s DOI of the same object.'),
+        '#options' => $relation_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['relation_type'] ?? '',
+      ];
+      $form['relatedIdentifiers'][$i]['identifier_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Identifier Type'),
+        '#options' => $related_identifier_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['identifier_type'] ?? '',
+      ];
+      $form['relatedIdentifiers'][$i]['resource_type_general'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Resource Type General'),
+        '#description' => $this->t('The general resource type of the identified item, if known.'),
+        '#options' => $related_identifier_resource_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['resource_type_general'] ?? '',
+      ];
+      $form['relatedIdentifiers'][$i]['identifier_value'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Identifier'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['identifier_value'] ?? '',
+      ];
+      if ($related_identifier_count > 1) {
+        $form['relatedIdentifiers'][$i]['remove_related_identifier'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_related_identifier_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addRelatedIdentifierCallback'],
+            'wrapper' => 'related-identifiers-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeRelatedIdentifierSubmit']],
+          '#limit_validation_errors' => [['data', 'relatedIdentifiers']],
+        ];
+      }
+    }
+
+    $form['relatedIdentifiers']['add_related_identifier'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another related identifier'),
+      '#submit' => [[$this, 'addRelatedIdentifierSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addRelatedIdentifierCallback'],
+        'wrapper' => 'related-identifiers-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'relatedIdentifiers']],
+    ];
+
     $form['size'] = [
       '#title' => $this->t('Size(s)'),
       '#description' => $this->t('Size(s) of the resource, e.g. "90 pages" or "1 MB".'),
@@ -351,9 +447,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#default_value' => $this->configuration['funder'],
     ];
 
-    $relation_type_options = array_combine(DataciteVocabularies::RELATION_TYPES, DataciteVocabularies::RELATION_TYPES);
     $related_item_type_options = array_combine(DataciteVocabularies::RESOURCE_TYPES, DataciteVocabularies::RESOURCE_TYPES);
-    $related_identifier_type_options = array_combine(DataciteVocabularies::IDENTIFIER_TYPES, DataciteVocabularies::IDENTIFIER_TYPES);
     $number_type_options = array_combine(DataciteVocabularies::NUMBER_TYPES, DataciteVocabularies::NUMBER_TYPES);
     $contributor_type_options = array_combine(DataciteVocabularies::CONTRIBUTOR_TYPES, DataciteVocabularies::CONTRIBUTOR_TYPES);
 
@@ -600,6 +694,66 @@ class DataciteDataProfile extends DataProfileBase {
   }
 
   /**
+   * Extracts the related identifier sub-field values from a submitted form
+   * item.
+   */
+  private function extractRelatedIdentifierValues(array $item): array {
+    $values = [];
+    foreach (self::RELATED_IDENTIFIER_KEYS as $key) {
+      $values[$key] = $item[$key] ?? '';
+    }
+    return $values;
+  }
+
+  public function addRelatedIdentifierSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'relatedIdentifiers']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractRelatedIdentifierValues($item);
+      }
+    }
+    $values[] = [];
+    $form_state->set('related_identifier_values', $values);
+    $form_state->set('related_identifier_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another related identifier" button.
+   */
+  public function addRelatedIdentifierCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['relatedIdentifiers'];
+  }
+
+  /**
+   * Submit handler for the "Remove" related identifier button.
+   */
+  public function removeRelatedIdentifierSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_related_identifier_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'relatedIdentifiers']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractRelatedIdentifierValues($item);
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['relatedIdentifiers']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('related_identifier_values', $values);
+    $form_state->set('related_identifier_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
    * Extracts the related item sub-field values from a submitted form item.
    */
   private function extractRelatedItemValues(array $item): array {
@@ -691,7 +845,17 @@ class DataciteDataProfile extends DataProfileBase {
     }
     $this->configuration['identifiers'] = $identifiers;
 
-    $this->configuration['identical'] = $form_state->getValue('identical');
+    $related_identifier_count = $form_state->get('related_identifier_count') ?? 1;
+    $relatedIdentifiers = [];
+    for ($i = 0; $i < $related_identifier_count; $i++) {
+      $item = $form_state->getValue(['relatedIdentifiers', $i]) ?? [];
+      $entry = $this->extractRelatedIdentifierValues($item);
+      if (!empty($entry['relation_type']) && !empty($entry['identifier_type']) && !empty($entry['identifier_value'])) {
+        $relatedIdentifiers[] = $entry;
+      }
+    }
+    $this->configuration['relatedIdentifiers'] = $relatedIdentifiers;
+
     $this->configuration['size'] = $form_state->getValue('size');
     $this->configuration['format'] = $form_state->getValue('format');
     $this->configuration['version'] = $form_state->getValue('version');

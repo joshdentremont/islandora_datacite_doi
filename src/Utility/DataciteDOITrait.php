@@ -283,15 +283,20 @@ trait DataciteDOITrait {
       }
     }
 
-    // Related Identifiers.
-    $related = $body->addChild('relatedIdentifiers');
-
-    // Identical DOI.
-    if (array_key_exists("datacite.identical", $data)) {
-      $identical = $related->addChild('relatedIdentifier', $data["datacite.identical"][0]["value"]);
-      $identical->addAttribute('relatedIdentifierType', 'DOI');
-      $identical->addAttribute('relationType', 'IsIdenticalTo');
-      $identical->addAttribute('resourceTypeGeneral', $data["datacite.rtypeGeneral"][0]["value"]);
+    // Related Identifiers. Each entry's relation_type/identifier_type/
+    // resource_type_general are chosen from DataCite's controlled
+    // vocabularies directly in the data profile form, so they're already
+    // valid values here and don't need fallback validation.
+    if (array_key_exists("datacite.relatedIdentifiers", $data) && !empty($data["datacite.relatedIdentifiers"])) {
+      $related = $body->addChild('relatedIdentifiers');
+      foreach ($data["datacite.relatedIdentifiers"] as $rid) {
+        $relatedIdentifier = $related->addChild('relatedIdentifier', $rid['value']);
+        $relatedIdentifier->addAttribute('relatedIdentifierType', $rid['identifier_type']);
+        $relatedIdentifier->addAttribute('relationType', $rid['relation_type']);
+        if (!empty($rid['resource_type_general'])) {
+          $relatedIdentifier->addAttribute('resourceTypeGeneral', $rid['resource_type_general']);
+        }
+      }
     }
 
     // Sizes.
