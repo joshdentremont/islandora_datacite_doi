@@ -145,6 +145,34 @@ class MintDataciteDOI extends MintIdentifier {
             }
           }
         }
+        // Deal with related items being a repeatable set of Drupal field
+        // selections plus profile-level relation/type/identifier-type values.
+        else if ($key === 'datacite.relatedItems') {
+          $relatedItems = [];
+          foreach ($field as $ri) {
+            if (empty($ri['relation_type']) || empty($ri['related_item_type'])) {
+              continue;
+            }
+            $entry = [
+              'relation_type' => $ri['relation_type'],
+              'related_item_type' => $ri['related_item_type'],
+              'related_identifier_type' => $ri['related_identifier_type'] ?? '',
+            ];
+            foreach (['identifier_value', 'title', 'publication_year', 'volume', 'issue', 'first_page', 'last_page', 'publisher', 'edition'] as $sub_key) {
+              $field_name = $ri[$sub_key] ?? '';
+              if (!empty($field_name) && $this->entity->hasField($field_name)) {
+                $entity_field = $this->entity->get($field_name);
+                if (!$entity_field->isEmpty()) {
+                  $entry[$sub_key] = $entity_field->getString();
+                }
+              }
+            }
+            $relatedItems[] = $entry;
+          }
+          if (!empty($relatedItems)) {
+            $data[$key] = $relatedItems;
+          }
+        }
         else if ($this->entity->hasField($field)) {
           $entity_field = $this->entity->get($field);
           if (!$entity_field->isEmpty()) {

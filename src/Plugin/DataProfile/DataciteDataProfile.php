@@ -4,6 +4,7 @@ namespace Drupal\islandora_datacite_doi\Plugin\DataProfile;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\dgi_actions\Plugin\DataProfileBase;
+use Drupal\islandora_datacite_doi\Utility\DataciteVocabularies;
 
 /**
  * Datacite Data profile.
@@ -15,6 +16,24 @@ use Drupal\dgi_actions\Plugin\DataProfileBase;
  * )
  */
 class DataciteDataProfile extends DataProfileBase {
+
+  /**
+   * Keys of the sub-fields stored for each repeatable related item entry.
+   */
+  const RELATED_ITEM_KEYS = [
+    'relation_type',
+    'related_item_type',
+    'related_identifier_type',
+    'identifier_value',
+    'title',
+    'publication_year',
+    'volume',
+    'issue',
+    'first_page',
+    'last_page',
+    'publisher',
+    'edition',
+  ];
 
   /**
    * Datacite data profile constructor.
@@ -70,12 +89,7 @@ class DataciteDataProfile extends DataProfileBase {
       'abstract' => NULL,
       'note' => NULL,
       'funder' => NULL,
-      'hostname' => NULL,
-      'hostissn' => NULL,
-      'hostvolume' => NULL,
-      'hostissue' => NULL,
-      'hoststartpage' => NULL,
-      'hostendpage' => NULL,
+      'relatedItems' => [],
     ];
   }
 
@@ -331,53 +345,154 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funder'],
     ];
-    $form['hostname'] = [
-      '#title' => $this->t('Host Journal Name'),
-      '#description' => $this->t('The name of the journal that contains the resource. This must be present for the other host fields to be sent to DataCite.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostname'],
+
+    $relation_type_options = array_combine(DataciteVocabularies::RELATION_TYPES, DataciteVocabularies::RELATION_TYPES);
+    $related_item_type_options = array_combine(DataciteVocabularies::RESOURCE_TYPES, DataciteVocabularies::RESOURCE_TYPES);
+    $related_identifier_type_options = array_combine(DataciteVocabularies::IDENTIFIER_TYPES, DataciteVocabularies::IDENTIFIER_TYPES);
+
+    $form['relatedItems'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Related Items'),
+      '#prefix' => '<div id="related-items-wrapper">',
+      '#suffix' => '</div>',
     ];
-    $form['hostissn'] = [
-      '#title' => $this->t('Host Journal ISSN'),
-      '#description' => $this->t('The ISSN of the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostissn'],
+
+    $related_item_count = $form_state->get('related_item_count');
+    $related_item_values = $form_state->get('related_item_values');
+
+    if ($related_item_count === NULL || $related_item_values === NULL) {
+      $saved = $this->configuration['relatedItems'] ?? [];
+      $related_item_values = !empty($saved) ? $saved : [[]];
+      $form_state->set('related_item_values', $related_item_values);
+      $form_state->set('related_item_count', count($related_item_values));
+      $related_item_count = count($related_item_values);
+    }
+
+    $form['relatedItems'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Related Items'),
+      '#prefix' => '<div id="related-items-wrapper">',
+      '#suffix' => '</div>',
     ];
-    $form['hostvolume'] = [
-      '#title' => $this->t('Host Journal Volume'),
-      '#description' => $this->t('The volume of the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostvolume'],
-    ];
-    $form['hostissue'] = [
-      '#title' => $this->t('Host Journal Issue'),
-      '#description' => $this->t('The issue of the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostissue'],
-    ];
-    $form['hoststartpage'] = [
-      '#title' => $this->t('Host Journal Start Page'),
-      '#description' => $this->t('The first page in the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hoststartpage'],
-    ];
-    $form['hostendpage'] = [
-      '#title' => $this->t('Host Journal End Page'),
-      '#description' => $this->t('The end page in the journal that contains the resource.'),
-      '#type' => 'select',
-      '#options' => $available_fields,
-      '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['hostendpage'],
+
+    for ($i = 0; $i < $related_item_count; $i++) {
+      $saved_value = $related_item_values[$i] ?? [];
+      $form['relatedItems'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Related Item @num', ['@num' => $i + 1]),
+      ];
+      $form['relatedItems'][$i]['relation_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Relation Type'),
+        '#description' => $this->t('How the resource relates to this related item, e.g. "IsPublishedIn" for a journal, "Reviews" for a book being reviewed.'),
+        '#options' => $relation_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['relation_type'] ?? '',
+      ];
+      $form['relatedItems'][$i]['related_item_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Related Item Type'),
+        '#options' => $related_item_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['related_item_type'] ?? '',
+      ];
+      $form['relatedItems'][$i]['related_identifier_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Related Identifier Type'),
+        '#description' => $this->t('The type of the identifier selected below, e.g. "ISSN" or "DOI".'),
+        '#options' => $related_identifier_type_options,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['related_identifier_type'] ?? '',
+      ];
+      $form['relatedItems'][$i]['identifier_value'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Identifier'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['identifier_value'] ?? '',
+      ];
+      $form['relatedItems'][$i]['title'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Title'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['title'] ?? '',
+      ];
+      $form['relatedItems'][$i]['publication_year'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Publication Year'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['publication_year'] ?? '',
+      ];
+      $form['relatedItems'][$i]['volume'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Volume'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['volume'] ?? '',
+      ];
+      $form['relatedItems'][$i]['issue'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Issue'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['issue'] ?? '',
+      ];
+      $form['relatedItems'][$i]['first_page'] = [
+        '#type' => 'select',
+        '#title' => $this->t('First Page'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['first_page'] ?? '',
+      ];
+      $form['relatedItems'][$i]['last_page'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Last Page'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['last_page'] ?? '',
+      ];
+      $form['relatedItems'][$i]['publisher'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Publisher'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['publisher'] ?? '',
+      ];
+      $form['relatedItems'][$i]['edition'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Edition'),
+        '#options' => $available_fields,
+        '#empty_option' => $this->t('- None -'),
+        '#default_value' => $saved_value['edition'] ?? '',
+      ];
+      if ($related_item_count > 1) {
+        $form['relatedItems'][$i]['remove_related_item'] = [
+          '#type' => 'button',
+          '#value' => $this->t('Remove'),
+          '#name' => 'remove_related_item_' . $i,
+          '#ajax' => [
+            'callback' => [$this, 'addRelatedItemCallback'],
+            'wrapper' => 'related-items-wrapper',
+            'event' => 'click',
+          ],
+          '#executes_submit_callback' => TRUE,
+          '#submit' => [[$this, 'removeRelatedItemSubmit']],
+          '#limit_validation_errors' => [['data', 'relatedItems']],
+        ];
+      }
+    }
+
+    $form['relatedItems']['add_related_item'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add another related item'),
+      '#submit' => [[$this, 'addRelatedItemSubmit']],
+      '#ajax' => [
+        'callback' => [$this, 'addRelatedItemCallback'],
+        'wrapper' => 'related-items-wrapper',
+      ],
+      '#limit_validation_errors' => [['data', 'relatedItems']],
     ];
 
     return $form;
@@ -438,6 +553,65 @@ class DataciteDataProfile extends DataProfileBase {
     $form_state->setRebuild();
   }
 
+  /**
+   * Extracts the related item sub-field values from a submitted form item.
+   */
+  private function extractRelatedItemValues(array $item): array {
+    $values = [];
+    foreach (self::RELATED_ITEM_KEYS as $key) {
+      $values[$key] = $item[$key] ?? '';
+    }
+    return $values;
+  }
+
+  public function addRelatedItemSubmit(array &$form, FormStateInterface $form_state): void {
+    $existing = $form_state->getValue(['data', 'relatedItems']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractRelatedItemValues($item);
+      }
+    }
+    $values[] = [];
+    $form_state->set('related_item_values', $values);
+    $form_state->set('related_item_count', count($values));
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for the "Add another related item" button.
+   */
+  public function addRelatedItemCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['entity_fieldset']['bundle_fieldset_container']['bundle_fieldset']['dataprofile_fieldset_container']['dataprofile_fieldset']['dataprofile_fields_fieldset_container']['fields_fieldset']['data']['relatedItems'];
+  }
+
+  /**
+   * Submit handler for the "Remove" related item button.
+   */
+  public function removeRelatedItemSubmit(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $index = (int) str_replace('remove_related_item_', '', $trigger['#name']);
+
+    $existing = $form_state->getValue(['data', 'relatedItems']) ?? [];
+    $values = [];
+    foreach ($existing as $key => $item) {
+      if (is_int($key)) {
+        $values[] = $this->extractRelatedItemValues($item);
+      }
+    }
+
+    unset($values[$index]);
+    $values = array_values($values);
+
+    $user_input = $form_state->getUserInput();
+    unset($user_input['data']['relatedItems']);
+    $form_state->setUserInput($user_input);
+
+    $form_state->set('related_item_values', $values);
+    $form_state->set('related_item_count', count($values));
+    $form_state->setRebuild();
+  }
+
 
   /**
    * {@inheritdoc}
@@ -479,12 +653,17 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['abstract'] = $form_state->getValue('abstract');
     $this->configuration['note'] = $form_state->getValue('note');
     $this->configuration['funder'] = $form_state->getValue('funder');
-    $this->configuration['hostname'] = $form_state->getValue('hostname');
-    $this->configuration['hostissn'] = $form_state->getValue('hostissn');
-    $this->configuration['hostvolume'] = $form_state->getValue('hostvolume');
-    $this->configuration['hostissue'] = $form_state->getValue('hostissue');
-    $this->configuration['hoststartpage'] = $form_state->getValue('hoststartpage');
-    $this->configuration['hostendpage'] = $form_state->getValue('hostendpage');
+
+    $related_item_count = $form_state->get('related_item_count') ?? 1;
+    $relatedItems = [];
+    for ($i = 0; $i < $related_item_count; $i++) {
+      $item = $form_state->getValue(['relatedItems', $i]) ?? [];
+      $entry = $this->extractRelatedItemValues($item);
+      if (!empty($entry['relation_type']) && !empty($entry['related_item_type'])) {
+        $relatedItems[] = $entry;
+      }
+    }
+    $this->configuration['relatedItems'] = $relatedItems;
   }
 
 }

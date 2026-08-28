@@ -100,69 +100,8 @@ trait DataciteDOITrait {
   }
 
   protected function buildMetadataRequest(array $data) {
-    // Available resource types from DataCite.
-    $availableTypes = [
-      "Audiovisual",
-      "Award",
-      "Book",
-      "BookChapter",
-      "Collection",
-      "ComputationalNotebook",
-      "ConferencePaper",
-      "ConferenceProceeding",
-      "DataPaper",
-      "Dataset",
-      "Dissertation",
-      "Event",
-      "Image",
-      "Instrument",
-      "InteractiveResource",
-      "Journal",
-      "JournalArticle",
-      "Model",
-      "OutputManagementPlan",
-      "PeerReview",
-      "PhysicalObject",
-      "Preprint",
-      "Poster",
-      "Presentation",
-      "Project",
-      "Report",
-      "Service",
-      "Software",
-      "Sound",
-      "Standard",
-      "StudyRegistration",
-      "Text",
-      "Workflow",
-      "Other"
-    ];
-
-    // Available contributor types from DataCite.
-    $availableContributorTypes = [
-      "ContactPerson",
-      "DataCollector",
-      "DataCurator",
-      "DataManager",
-      "Distributor",
-      "Editor",
-      "HostingInstitution",
-      "Producer",
-      "ProjectLeader",
-      "ProjectManager",
-      "ProjectMember",
-      "RegistrationAgency",
-      "RegistrationAuthority",
-      "RelatedPerson",
-      "Researcher",
-      "ResearchGroup",
-      "RightsHolder",
-      "Sponsor",
-      "Supervisor",
-      "Translator",
-      "WorkPackageLeader",
-      "Other",
-    ];
+    $availableTypes = DataciteVocabularies::RESOURCE_TYPES;
+    $availableContributorTypes = DataciteVocabularies::CONTRIBUTOR_TYPES;
 
     // Check if all mandatory fields are available.
     $missing = [];
@@ -406,38 +345,45 @@ trait DataciteDOITrait {
       }
     }
 
-    // Host Journal - Title must be present for the rest to be added.
-    if (array_key_exists("datacite.hostname", $data)) {
-      $host = $body->addChild('relatedItems')->addChild('relatedItem');
-      $host->addAttribute('relatedItemType', 'Journal');
-      $host->addAttribute('relationType', 'IsPublishedIn');
+    // Related Items. Each entry's relation_type/related_item_type/
+    // related_identifier_type are chosen from DataCite's controlled
+    // vocabularies directly in the data profile form, so they're already
+    // valid values here and don't need fallback validation.
+    if (array_key_exists("datacite.relatedItems", $data) && !empty($data["datacite.relatedItems"])) {
+      $relatedItemsEl = $body->addChild('relatedItems');
+      foreach ($data["datacite.relatedItems"] as $ri) {
+        $relatedItem = $relatedItemsEl->addChild('relatedItem');
+        $relatedItem->addAttribute('relatedItemType', $ri['related_item_type']);
+        $relatedItem->addAttribute('relationType', $ri['relation_type']);
 
-      // Host ISSN.
-      if (array_key_exists("datacite.hostissn", $data)) {
-        $host->addChild('relatedItemIdentifier', $data["datacite.hostissn"][0]["value"])->addAttribute('relatedItemIdentifierType', 'ISSN');
-      }
-
-      // Host title.
-      $host->addChild('titles')->addChild('title', $data["datacite.hostname"][0]["value"]);
-
-      // Host Volume.
-      if (array_key_exists("datacite.hostvolume", $data)) {
-        $host->addChild('volume', $data["datacite.hostvolume"][0]["value"]);
-      }
-
-      // Host Issue.
-      if (array_key_exists("datacite.hostissue", $data)) {
-        $host->addChild('issue', $data["datacite.hostissue"][0]["value"]);
-      }
-
-      // Host Start Page.
-      if (array_key_exists("datacite.hoststartpage", $data)) {
-        $host->addChild('firstPage', $data["datacite.hoststartpage"][0]["value"]);
-      }
-
-      // Host End Page.
-      if (array_key_exists("datacite.hostendpage", $data)) {
-        $host->addChild('lastPage', $data["datacite.hostendpage"][0]["value"]);
+        if (!empty($ri['identifier_value'])) {
+          $relatedItem->addChild('relatedItemIdentifier', $ri['identifier_value'])
+                      ->addAttribute('relatedItemIdentifierType', $ri['related_identifier_type']);
+        }
+        if (!empty($ri['title'])) {
+          $relatedItem->addChild('titles')->addChild('title', $ri['title']);
+        }
+        if (!empty($ri['publication_year'])) {
+          $relatedItem->addChild('publicationYear', $ri['publication_year']);
+        }
+        if (!empty($ri['volume'])) {
+          $relatedItem->addChild('volume', $ri['volume']);
+        }
+        if (!empty($ri['issue'])) {
+          $relatedItem->addChild('issue', $ri['issue']);
+        }
+        if (!empty($ri['first_page'])) {
+          $relatedItem->addChild('firstPage', $ri['first_page']);
+        }
+        if (!empty($ri['last_page'])) {
+          $relatedItem->addChild('lastPage', $ri['last_page']);
+        }
+        if (!empty($ri['publisher'])) {
+          $relatedItem->addChild('publisher', $ri['publisher']);
+        }
+        if (!empty($ri['edition'])) {
+          $relatedItem->addChild('edition', $ri['edition']);
+        }
       }
     }
 
