@@ -360,14 +360,37 @@ trait DataciteDOITrait {
       }
     }
 
-    // Funding References (paragraphs with a funder name and award number).
+    // Funding References (paragraphs with funder/award sub-fields).
     if (array_key_exists("datacite.funder", $data)) {
+      // Scheme URIs conventionally paired with each funderIdentifierType;
+      // "Other" and any unrecognized type just omit schemeURI.
+      $funderSchemeUris = [
+        'ROR' => 'https://ror.org',
+        'ISNI' => 'https://isni.org',
+        'GRID' => 'https://www.grid.ac',
+        'Crossref Funder ID' => 'https://doi.org',
+      ];
+
       $fundingReferences = $body->addChild('fundingReferences');
       foreach ($data["datacite.funder"] as $funder) {
         $fundingReference = $fundingReferences->addChild('fundingReference');
         $fundingReference->addChild('funderName', $funder["value"]);
-        if (array_key_exists("award_number", $funder)) {
-          $fundingReference->addChild('awardNumber', $funder["award_number"]);
+        if (!empty($funder['identifier'])) {
+          $funderIdentifierType = $funder['identifier_type'] ?: 'Other';
+          $funderIdentifier = $fundingReference->addChild('funderIdentifier', $funder['identifier']);
+          $funderIdentifier->addAttribute('funderIdentifierType', $funderIdentifierType);
+          if (!empty($funderSchemeUris[$funderIdentifierType])) {
+            $funderIdentifier->addAttribute('schemeURI', $funderSchemeUris[$funderIdentifierType]);
+          }
+        }
+        if (!empty($funder['award_number'])) {
+          $awardNumber = $fundingReference->addChild('awardNumber', $funder['award_number']);
+          if (!empty($funder['award_uri'])) {
+            $awardNumber->addAttribute('awardURI', $funder['award_uri']);
+          }
+        }
+        if (!empty($funder['award_title'])) {
+          $fundingReference->addChild('awardTitle', $funder['award_title']);
         }
       }
     }

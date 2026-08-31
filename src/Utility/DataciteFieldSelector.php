@@ -57,7 +57,6 @@ final class DataciteFieldSelector {
     $storage_definitions = $field_manager->getFieldStorageDefinitions('node');
     $field_map = $field_manager->getFieldMap()['node'] ?? [];
     $field_config_storage = \Drupal::entityTypeManager()->getStorage('field_config');
-    $utils = \Drupal::service('dgi_actions.utils');
 
     foreach (array_keys($available_fields) as $field_name) {
       if (!isset($storage_definitions[$field_name])) {
@@ -83,15 +82,15 @@ final class DataciteFieldSelector {
       }
 
       foreach (array_keys($target_bundles) as $paragraph_bundle) {
-        $sub_fields = $utils->getFieldsForDropdown('paragraph', $paragraph_bundle);
-        if (empty($sub_fields)) {
+        $sub_field_names = array_keys($field_manager->getFieldDefinitions('paragraph', $paragraph_bundle));
+        if (empty($sub_field_names)) {
           continue;
         }
         // A distinct group label avoids colliding with the flat
         // $field_name => $field_name entry already in $options.
         $group_label = "$field_name (paragraph)";
         $options[$group_label] = $options[$group_label] ?? [];
-        foreach ($sub_fields as $sub_field_name) {
+        foreach ($sub_field_names as $sub_field_name) {
           $options[$group_label][$field_name . self::DELIMITER . $sub_field_name] = $sub_field_name;
         }
       }

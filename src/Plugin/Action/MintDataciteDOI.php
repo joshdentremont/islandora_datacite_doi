@@ -206,22 +206,33 @@ class MintDataciteDOI extends MintIdentifier {
             $data[$key] = $field;
           }
         }
-        // Deal with funder name/award number as a pair of paragraph
-        // sub-field selectors that must resolve correlated per paragraph,
-        // so a name and award number from the same paragraph stay paired
-        // even when one is blank for that paragraph.
+        // Deal with the funder sub-fields as a set of paragraph sub-field
+        // selectors that must resolve correlated per paragraph, so e.g. a
+        // name and award number from the same paragraph stay paired even
+        // when one is blank for that paragraph.
         else if ($key === 'datacite.funderName') {
           $rows = DataciteFieldSelector::resolveParagraphRows($this->entity, [
             'value' => $field,
+            'identifier' => $profile_data['datacite.funderIdentifier'] ?? '',
             'award_number' => $profile_data['datacite.funderAwardNumber'] ?? '',
+            'award_uri' => $profile_data['datacite.funderAwardURI'] ?? '',
+            'award_title' => $profile_data['datacite.funderAwardTitle'] ?? '',
           ]);
           $funders = array_values(array_filter($rows, fn(array $row) => !empty($row['value'])));
+          if (!empty($profile_data['datacite.funderIdentifierType'])) {
+            foreach ($funders as &$funder) {
+              if (!empty($funder['identifier'])) {
+                $funder['identifier_type'] = $profile_data['datacite.funderIdentifierType'];
+              }
+            }
+            unset($funder);
+          }
           if (!empty($funders)) {
             $data['datacite.funder'] = $funders;
           }
         }
         // Resolved together with funderName above.
-        else if ($key === 'datacite.funderAwardNumber') {
+        else if (in_array($key, ['datacite.funderIdentifier', 'datacite.funderIdentifierType', 'datacite.funderAwardNumber', 'datacite.funderAwardURI', 'datacite.funderAwardTitle'])) {
         }
         // Deal with geolocations being a repeatable set of a place name
         // field and a Geolocation-module field (holding lat/lng).

@@ -152,7 +152,11 @@ class DataciteDataProfile extends DataProfileBase {
       'descriptions' => [],
       'geoLocations' => [],
       'funderName' => NULL,
+      'funderIdentifier' => NULL,
+      'funderIdentifierType' => NULL,
       'funderAwardNumber' => NULL,
+      'funderAwardURI' => NULL,
+      'funderAwardTitle' => NULL,
       'relatedItems' => [],
     ];
   }
@@ -846,10 +850,12 @@ class DataciteDataProfile extends DataProfileBase {
       '#limit_validation_errors' => [['data', 'geoLocations']],
     ];
 
+    $funder_identifier_type_options = array_combine(DataciteVocabularies::FUNDER_IDENTIFIER_TYPES, DataciteVocabularies::FUNDER_IDENTIFIER_TYPES);
+
     $form['funderGroup'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Funder(s)'),
-      '#description' => $this->t('Pick fields from within a paragraph field (e.g. "field_funder (paragraph) → field_funder_name"). Both should come from the same paragraph field so the name and award number stay paired to the same funder.'),
+      '#description' => $this->t('Pick fields from within a paragraph field (e.g. "field_funder (paragraph) → field_funder_name"). All of these should come from the same paragraph field so they stay paired to the same funder.'),
     ];
     $form['funderGroup']['funderName'] = [
       '#title' => $this->t('Funder Name'),
@@ -858,12 +864,42 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funderName'],
     ];
+    $form['funderGroup']['funderIdentifier'] = [
+      '#title' => $this->t('Funder Identifier'),
+      '#description' => $this->t('An external identifier for the funder itself, e.g. a ROR or Crossref Funder ID.'),
+      '#type' => 'select',
+      '#options' => $field_options,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['funderIdentifier'],
+    ];
+    $form['funderGroup']['funderIdentifierType'] = [
+      '#title' => $this->t('Funder Identifier Type'),
+      '#type' => 'select',
+      '#options' => $funder_identifier_type_options,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['funderIdentifierType'],
+    ];
     $form['funderGroup']['funderAwardNumber'] = [
       '#title' => $this->t('Award Number'),
       '#type' => 'select',
       '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funderAwardNumber'],
+    ];
+    $form['funderGroup']['funderAwardURI'] = [
+      '#title' => $this->t('Award URI'),
+      '#description' => $this->t('A URI for the award selected above.'),
+      '#type' => 'select',
+      '#options' => $field_options,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['funderAwardURI'],
+    ];
+    $form['funderGroup']['funderAwardTitle'] = [
+      '#title' => $this->t('Award Title'),
+      '#type' => 'select',
+      '#options' => $field_options,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['funderAwardTitle'],
     ];
 
     $related_item_type_options = array_combine(DataciteVocabularies::RESOURCE_TYPES, DataciteVocabularies::RESOURCE_TYPES);
@@ -1689,7 +1725,11 @@ class DataciteDataProfile extends DataProfileBase {
     $this->configuration['geoLocations'] = $geoLocations;
 
     $this->configuration['funderName'] = $form_state->getValue(['funderGroup', 'funderName']);
+    $this->configuration['funderIdentifier'] = $form_state->getValue(['funderGroup', 'funderIdentifier']);
+    $this->configuration['funderIdentifierType'] = $form_state->getValue(['funderGroup', 'funderIdentifierType']);
     $this->configuration['funderAwardNumber'] = $form_state->getValue(['funderGroup', 'funderAwardNumber']);
+    $this->configuration['funderAwardURI'] = $form_state->getValue(['funderGroup', 'funderAwardURI']);
+    $this->configuration['funderAwardTitle'] = $form_state->getValue(['funderGroup', 'funderAwardTitle']);
 
     $related_item_count = $form_state->get('related_item_count') ?? 1;
     $relatedItems = [];

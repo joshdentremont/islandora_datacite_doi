@@ -136,6 +136,18 @@ final class DataciteVocabularies {
   ];
 
   /**
+   * Valid values for funderIdentifierType. Required whenever a
+   * funderIdentifier is present.
+   */
+  const FUNDER_IDENTIFIER_TYPES = [
+    "ISNI",
+    "GRID",
+    "ROR",
+    "Crossref Funder ID",
+    "Other",
+  ];
+
+  /**
    * Valid values for descriptionType. Unlike titleType/nameType, this
    * attribute is required on every description.
    */
