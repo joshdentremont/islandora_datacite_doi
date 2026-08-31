@@ -4,6 +4,7 @@ namespace Drupal\islandora_datacite_doi\Plugin\DataProfile;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\dgi_actions\Plugin\DataProfileBase;
+use Drupal\islandora_datacite_doi\Utility\DataciteFieldSelector;
 use Drupal\islandora_datacite_doi\Utility\DataciteVocabularies;
 
 /**
@@ -150,7 +151,8 @@ class DataciteDataProfile extends DataProfileBase {
       'rights' => NULL,
       'descriptions' => [],
       'geoLocations' => [],
-      'funder' => NULL,
+      'funderName' => NULL,
+      'funderAwardNumber' => NULL,
       'relatedItems' => [],
     ];
   }
@@ -160,8 +162,10 @@ class DataciteDataProfile extends DataProfileBase {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state): array {
     // The available fields from the entity/bundle are passed through a
-    // temporary value in the form state.
+    // temporary value in the form state. Expand it to also offer fields
+    // from within any referenced paragraphs.
     $available_fields = $form_state->getTemporaryValue('available_fields');
+    $field_options = DataciteFieldSelector::buildFieldOptions($available_fields);
 
     $name_type_options = array_combine(DataciteVocabularies::NAME_TYPES, DataciteVocabularies::NAME_TYPES);
 
@@ -173,7 +177,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Author(s)'),
       '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['author'],
       '#required' => TRUE,
@@ -224,7 +228,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['titles'][$i]['title_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Title'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['title_value'] ?? '',
       ];
@@ -267,7 +271,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Publisher'),
       '#description' => $this->t('Name of the publisher. If publisher is a taxonomy term and the taxonomy has a URL field called field_ror, that value is automatically pulled as well.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['publisher'],
       '#required' => TRUE,
@@ -276,7 +280,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Year'),
       '#description' => $this->t('Year of publication. If field contains more than just a 4 digit year it will extract the first 4 digit number from the field. If the date is an EDTF date, like 199X, it will replace the X\'s with 0\'s.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['year'],
       '#required' => TRUE,
@@ -285,7 +289,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Resource Type General'),
       '#description' => $this->t('General resource type. If your selected type is not in DataCite\'s list, it will be set to "Other".'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['rtypeGeneral'],
       '#required' => TRUE,
@@ -294,7 +298,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Resource Type'),
       '#description' => $this->t('Resource type.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['rtype'],
     ];
@@ -302,7 +306,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Subject(s)'),
       '#description' => $this->t('Subject(s) for the resource.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['subject'],
     ];
@@ -344,7 +348,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['contributors'][$i]['field'] = [
         '#type' => 'select',
         '#title' => $this->t('Field'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['field'] ?? '',
       ];
@@ -399,7 +403,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Contributor(s) (Typed Relation)'),
       '#description' => $this->t('Use this for a typed relation field to a person taxonomy term, where the contributor type varies per value (mapped from the field\'s relation type to a DataCite contributorType; unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['contributor'],
     ];
@@ -448,7 +452,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'select',
         '#title' => $this->t('Date'),
         '#description' => $this->t('X\'s in the date will be replaced with 0\'s. If the result doesn\'t match the format YYYY-MM-DD, just the first 4 digit year will be used, and the full original text will be added to the dateInformation attribute.'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['date_value'] ?? '',
       ];
@@ -491,7 +495,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Language'),
       '#description' => $this->t('The primary language of the resource.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['language'],
     ];
@@ -534,7 +538,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['identifiers'][$i]['identifier_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Value'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['identifier_value'] ?? '',
       ];
@@ -612,7 +616,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['relatedIdentifiers'][$i]['identifier_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Identifier'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['identifier_value'] ?? '',
       ];
@@ -663,7 +667,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Size(s)'),
       '#description' => $this->t('Size(s) of the resource, e.g. "90 pages" or "1 MB".'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['size'],
     ];
@@ -671,7 +675,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Format(s)'),
       '#description' => $this->t('Technical format(s) of the resource, e.g. a MIME type like "application/pdf".'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['format'],
     ];
@@ -679,7 +683,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Version'),
       '#description' => $this->t('Version number of the resource, e.g. "1.0".'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['version'],
     ];
@@ -687,7 +691,7 @@ class DataciteDataProfile extends DataProfileBase {
       '#title' => $this->t('Rights'),
       '#description' => $this->t('Rights information for the resource.'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['rights'],
     ];
@@ -727,7 +731,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['descriptions'][$i]['description_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Description'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['description_value'] ?? '',
       ];
@@ -802,7 +806,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['geoLocations'][$i]['place'] = [
         '#type' => 'select',
         '#title' => $this->t('Place Name'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['place'] ?? '',
       ];
@@ -810,7 +814,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'select',
         '#title' => $this->t('Point'),
         '#description' => $this->t('A Geolocation-module field holding a latitude/longitude point.'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['point'] ?? '',
       ];
@@ -842,13 +846,24 @@ class DataciteDataProfile extends DataProfileBase {
       '#limit_validation_errors' => [['data', 'geoLocations']],
     ];
 
-    $form['funder'] = [
+    $form['funderGroup'] = [
+      '#type' => 'fieldset',
       '#title' => $this->t('Funder(s)'),
-      '#description' => $this->t('Paragraph field containing funder information. Each referenced paragraph should have a field_funder_name sub-field (the funder\'s name) and may have a field_funder_reference_number sub-field (the award/grant number).'),
+      '#description' => $this->t('Pick fields from within a paragraph field (e.g. "field_funder (paragraph) → field_funder_name"). Both should come from the same paragraph field so the name and award number stay paired to the same funder.'),
+    ];
+    $form['funderGroup']['funderName'] = [
+      '#title' => $this->t('Funder Name'),
       '#type' => 'select',
-      '#options' => $available_fields,
+      '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
-      '#default_value' => $this->configuration['funder'],
+      '#default_value' => $this->configuration['funderName'],
+    ];
+    $form['funderGroup']['funderAwardNumber'] = [
+      '#title' => $this->t('Award Number'),
+      '#type' => 'select',
+      '#options' => $field_options,
+      '#empty_option' => $this->t('- None -'),
+      '#default_value' => $this->configuration['funderAwardNumber'],
     ];
 
     $related_item_type_options = array_combine(DataciteVocabularies::RESOURCE_TYPES, DataciteVocabularies::RESOURCE_TYPES);
@@ -904,7 +919,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['relatedItems'][$i]['identifier_value'] = [
         '#type' => 'select',
         '#title' => $this->t('Identifier'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['identifier_value'] ?? '',
       ];
@@ -924,7 +939,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'select',
         '#title' => $this->t('Creator(s)'),
         '#description' => $this->t('Field holding the related item\'s creator(s). If the field has multiple values, each becomes a separate creator.'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['creators'] ?? '',
       ];
@@ -939,28 +954,28 @@ class DataciteDataProfile extends DataProfileBase {
       $form['relatedItems'][$i]['title'] = [
         '#type' => 'select',
         '#title' => $this->t('Title'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['title'] ?? '',
       ];
       $form['relatedItems'][$i]['publication_year'] = [
         '#type' => 'select',
         '#title' => $this->t('Publication Year'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['publication_year'] ?? '',
       ];
       $form['relatedItems'][$i]['volume'] = [
         '#type' => 'select',
         '#title' => $this->t('Volume'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['volume'] ?? '',
       ];
       $form['relatedItems'][$i]['issue'] = [
         '#type' => 'select',
         '#title' => $this->t('Issue'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['issue'] ?? '',
       ];
@@ -971,7 +986,7 @@ class DataciteDataProfile extends DataProfileBase {
       $form['relatedItems'][$i]['numberGroup']['number'] = [
         '#type' => 'select',
         '#title' => $this->t('Number'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['number'] ?? '',
       ];
@@ -986,28 +1001,28 @@ class DataciteDataProfile extends DataProfileBase {
       $form['relatedItems'][$i]['first_page'] = [
         '#type' => 'select',
         '#title' => $this->t('First Page'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['first_page'] ?? '',
       ];
       $form['relatedItems'][$i]['last_page'] = [
         '#type' => 'select',
         '#title' => $this->t('Last Page'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['last_page'] ?? '',
       ];
       $form['relatedItems'][$i]['publisher'] = [
         '#type' => 'select',
         '#title' => $this->t('Publisher'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['publisher'] ?? '',
       ];
       $form['relatedItems'][$i]['edition'] = [
         '#type' => 'select',
         '#title' => $this->t('Edition'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['edition'] ?? '',
       ];
@@ -1019,7 +1034,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'select',
         '#title' => $this->t('Contributor(s)'),
         '#description' => $this->t('Field holding the related item\'s contributor(s). If the field has multiple values, each becomes a separate contributor.'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributors'] ?? '',
       ];
@@ -1047,7 +1062,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#type' => 'select',
         '#title' => $this->t('Contributor(s)'),
         '#description' => $this->t('A typed relation field to a person taxonomy term, where the contributor type varies per value (mapped from the field\'s relation type to a DataCite contributorType; unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
-        '#options' => $available_fields,
+        '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['typed_contributors'] ?? '',
       ];
@@ -1673,7 +1688,8 @@ class DataciteDataProfile extends DataProfileBase {
     }
     $this->configuration['geoLocations'] = $geoLocations;
 
-    $this->configuration['funder'] = $form_state->getValue('funder');
+    $this->configuration['funderName'] = $form_state->getValue(['funderGroup', 'funderName']);
+    $this->configuration['funderAwardNumber'] = $form_state->getValue(['funderGroup', 'funderAwardNumber']);
 
     $related_item_count = $form_state->get('related_item_count') ?? 1;
     $relatedItems = [];

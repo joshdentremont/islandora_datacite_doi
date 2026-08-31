@@ -7,7 +7,7 @@ use Drupal\dgi_actions\Plugin\Action\HttpActionMintTrait;
 use Drupal\dgi_actions\Plugin\Action\MintIdentifier;
 use Drupal\dgi_actions\Utility\IdentifierUtils;
 use Drupal\islandora_datacite_doi\Utility\DataciteDOITrait;
-use Drupal\taxonomy\Entity\Term;
+use Drupal\islandora_datacite_doi\Utility\DataciteFieldSelector;
 use GuzzleHttp\ClientInterface;
 use http\Exception\BadMessageException;
 use Psr\Http\Message\ResponseInterface;
@@ -110,15 +110,16 @@ class MintDataciteDOI extends MintIdentifier {
     $data = [];
     $data_profile = $this->getIdentifier()->getDataProfile();
     if ($data_profile) {
-      foreach ($data_profile->getData() as $key => $field) {
+      $profile_data = $data_profile->getData();
+      foreach ($profile_data as $key => $field) {
         // Deal with identifiers being an array
         if ($key === 'datacite.identifiers') {
           if ($field[0]['identifier_type'] && $field[0]['identifier_value']) {
             $data['datacite.identifiers'] = [];
             foreach ($field as $identifier) {
-              $entity_field = $this->entity->get($identifier['identifier_value']);
-              if (!$entity_field->isEmpty()) {
-                $data['datacite.identifiers'][$identifier['identifier_type']] = $entity_field->getValue();
+              $values = DataciteFieldSelector::resolveValues($this->entity, $identifier['identifier_value']);
+              if (!empty($values)) {
+                $data['datacite.identifiers'][$identifier['identifier_type']] = $values;
               }
             }
           }
@@ -131,37 +132,25 @@ class MintDataciteDOI extends MintIdentifier {
         else if ($key === 'datacite.contributors') {
           $contributorsList = [];
           foreach ($field as $c) {
-            if (empty($c['contributor_type']) || empty($c['field']) || !$this->entity->hasField($c['field'])) {
+            if (empty($c['contributor_type']) || empty($c['field'])) {
               continue;
             }
-            $entity_field = $this->entity->get($c['field']);
-            if ($entity_field->isEmpty()) {
-              continue;
-            }
-            foreach ($entity_field->getValue() as $field_item) {
+            foreach (DataciteFieldSelector::resolveValues($this->entity, $c['field']) as $field_item) {
+              if (empty($field_item['value'])) {
+                continue;
+              }
               $entry = [
                 'contributor_type' => $c['contributor_type'],
                 'name_type' => $c['name_type'] ?? '',
+                'value' => $field_item['value'],
               ];
-              if (array_key_exists('target_id', $field_item)) {
-                $term = Term::load($field_item['target_id']);
-                if (!$term) {
-                  continue;
-                }
-                $entry['value'] = $term->label();
-                if ($term->hasField('field_ror') && !$term->get('field_ror')->isEmpty()) {
-                  $entry['ror'] = $term->get('field_ror')->uri;
-                }
-                if ($term->hasField('field_orcid') && !$term->get('field_orcid')->isEmpty()) {
-                  $entry['orcid'] = $term->get('field_orcid')->uri;
-                }
+              if (!empty($field_item['ror'])) {
+                $entry['ror'] = $field_item['ror'];
               }
-              else {
-                $entry['value'] = $field_item['value'] ?? '';
+              if (!empty($field_item['orcid'])) {
+                $entry['orcid'] = $field_item['orcid'];
               }
-              if (!empty($entry['value'])) {
-                $contributorsList[] = $entry;
-              }
+              $contributorsList[] = $entry;
             }
           }
           if (!empty($contributorsList)) {
@@ -173,16 +162,16 @@ class MintDataciteDOI extends MintIdentifier {
         else if ($key === 'datacite.descriptions') {
           $descriptions = [];
           foreach ($field as $desc) {
-            if (empty($desc['description_type']) || empty($desc['description_value']) || !$this->entity->hasField($desc['description_value'])) {
+            if (empty($desc['description_type']) || empty($desc['description_value'])) {
               continue;
             }
-            $entity_field = $this->entity->get($desc['description_value']);
-            if ($entity_field->isEmpty()) {
+            $value = DataciteFieldSelector::resolveString($this->entity, $desc['description_value']);
+            if ($value === '') {
               continue;
             }
             $descriptions[] = [
               'description_type' => $desc['description_type'],
-              'value' => $entity_field->getString(),
+              'value' => $value,
             ];
           }
           if (!empty($descriptions)) {
@@ -194,16 +183,16 @@ class MintDataciteDOI extends MintIdentifier {
         else if ($key === 'datacite.titles') {
           $titles = [];
           foreach ($field as $t) {
-            if (empty($t['title_value']) || !$this->entity->hasField($t['title_value'])) {
+            if (empty($t['title_value'])) {
               continue;
             }
-            $entity_field = $this->entity->get($t['title_value']);
-            if ($entity_field->isEmpty()) {
+            $value = DataciteFieldSelector::resolveString($this->entity, $t['title_value']);
+            if ($value === '') {
               continue;
             }
             $titles[] = [
               'title_type' => $t['title_type'] ?? '',
-              'value' => $entity_field->getString(),
+              'value' => $value,
             ];
           }
           if (!empty($titles)) {
@@ -217,27 +206,22 @@ class MintDataciteDOI extends MintIdentifier {
             $data[$key] = $field;
           }
         }
-        // Deal with funder being a paragraph reference.
-        else if ($key === 'datacite.funder') {
-          if ($this->entity->hasField($field)) {
-            $entity_field = $this->entity->get($field);
-            if (!$entity_field->isEmpty()) {
-              $funders = [];
-              foreach ($entity_field->referencedEntities() as $paragraph) {
-                if (!$paragraph->hasField('field_funder_name') || $paragraph->get('field_funder_name')->isEmpty()) {
-                  continue;
-                }
-                $funder = ['value' => $paragraph->get('field_funder_name')->getString()];
-                if ($paragraph->hasField('field_funder_reference_number') && !$paragraph->get('field_funder_reference_number')->isEmpty()) {
-                  $funder['award_number'] = $paragraph->get('field_funder_reference_number')->getString();
-                }
-                $funders[] = $funder;
-              }
-              if (!empty($funders)) {
-                $data[$key] = $funders;
-              }
-            }
+        // Deal with funder name/award number as a pair of paragraph
+        // sub-field selectors that must resolve correlated per paragraph,
+        // so a name and award number from the same paragraph stay paired
+        // even when one is blank for that paragraph.
+        else if ($key === 'datacite.funderName') {
+          $rows = DataciteFieldSelector::resolveParagraphRows($this->entity, [
+            'value' => $field,
+            'award_number' => $profile_data['datacite.funderAwardNumber'] ?? '',
+          ]);
+          $funders = array_values(array_filter($rows, fn(array $row) => !empty($row['value'])));
+          if (!empty($funders)) {
+            $data['datacite.funder'] = $funders;
           }
+        }
+        // Resolved together with funderName above.
+        else if ($key === 'datacite.funderAwardNumber') {
         }
         // Deal with geolocations being a repeatable set of a place name
         // field and a Geolocation-module field (holding lat/lng).
@@ -245,20 +229,18 @@ class MintDataciteDOI extends MintIdentifier {
           $geoLocations = [];
           foreach ($field as $geo) {
             $entry = [];
-            if (!empty($geo['place']) && $this->entity->hasField($geo['place'])) {
-              $entity_field = $this->entity->get($geo['place']);
-              if (!$entity_field->isEmpty()) {
-                $entry['place'] = $entity_field->getString();
+            if (!empty($geo['place'])) {
+              $place = DataciteFieldSelector::resolveString($this->entity, $geo['place']);
+              if ($place !== '') {
+                $entry['place'] = $place;
               }
             }
-            if (!empty($geo['point']) && $this->entity->hasField($geo['point'])) {
-              $entity_field = $this->entity->get($geo['point']);
-              if (!$entity_field->isEmpty()) {
-                $point_value = $entity_field->getValue()[0] ?? [];
-                if (!empty($point_value['lat']) && !empty($point_value['lng'])) {
-                  $entry['latitude'] = $point_value['lat'];
-                  $entry['longitude'] = $point_value['lng'];
-                }
+            if (!empty($geo['point'])) {
+              $point_values = DataciteFieldSelector::resolveValues($this->entity, $geo['point']);
+              $point_value = $point_values[0] ?? [];
+              if (!empty($point_value['lat']) && !empty($point_value['lng'])) {
+                $entry['latitude'] = $point_value['lat'];
+                $entry['longitude'] = $point_value['lng'];
               }
             }
             if (!empty($entry)) {
@@ -274,16 +256,16 @@ class MintDataciteDOI extends MintIdentifier {
         else if ($key === 'datacite.dates') {
           $dates = [];
           foreach ($field as $d) {
-            if (empty($d['date_type']) || empty($d['date_value']) || !$this->entity->hasField($d['date_value'])) {
+            if (empty($d['date_type']) || empty($d['date_value'])) {
               continue;
             }
-            $entity_field = $this->entity->get($d['date_value']);
-            if ($entity_field->isEmpty()) {
+            $value = DataciteFieldSelector::resolveString($this->entity, $d['date_value']);
+            if ($value === '') {
               continue;
             }
             $dates[] = [
               'date_type' => $d['date_type'],
-              'value' => $entity_field->getString(),
+              'value' => $value,
             ];
           }
           if (!empty($dates)) {
@@ -296,18 +278,18 @@ class MintDataciteDOI extends MintIdentifier {
         else if ($key === 'datacite.relatedIdentifiers') {
           $relatedIdentifiers = [];
           foreach ($field as $rid) {
-            if (empty($rid['relation_type']) || empty($rid['identifier_type']) || empty($rid['identifier_value']) || !$this->entity->hasField($rid['identifier_value'])) {
+            if (empty($rid['relation_type']) || empty($rid['identifier_type']) || empty($rid['identifier_value'])) {
               continue;
             }
-            $entity_field = $this->entity->get($rid['identifier_value']);
-            if ($entity_field->isEmpty()) {
+            $value = DataciteFieldSelector::resolveString($this->entity, $rid['identifier_value']);
+            if ($value === '') {
               continue;
             }
             $relatedIdentifiers[] = [
               'relation_type' => $rid['relation_type'],
               'identifier_type' => $rid['identifier_type'],
               'resource_type_general' => $rid['resource_type_general'] ?? '',
-              'value' => $entity_field->getString(),
+              'value' => $value,
             ];
           }
           if (!empty($relatedIdentifiers)) {
@@ -333,48 +315,33 @@ class MintDataciteDOI extends MintIdentifier {
               'typed_contributors_name_type' => $ri['typed_contributors_name_type'] ?? '',
             ];
             foreach (['identifier_value', 'creators', 'title', 'publication_year', 'volume', 'issue', 'number', 'first_page', 'last_page', 'publisher', 'edition', 'contributors'] as $sub_key) {
-              $field_name = $ri[$sub_key] ?? '';
-              if (empty($field_name) || !$this->entity->hasField($field_name)) {
-                continue;
-              }
-              $entity_field = $this->entity->get($field_name);
-              if ($entity_field->isEmpty()) {
+              $selector = $ri[$sub_key] ?? '';
+              if (empty($selector)) {
                 continue;
               }
               if ($sub_key === 'creators' || $sub_key === 'contributors') {
-                $entry[$sub_key] = array_column($entity_field->getValue(), 'value');
+                $values = array_column(DataciteFieldSelector::resolveValues($this->entity, $selector), 'value');
+                if (!empty($values)) {
+                  $entry[$sub_key] = $values;
+                }
               }
               else {
-                $entry[$sub_key] = $entity_field->getString();
+                $value = DataciteFieldSelector::resolveString($this->entity, $selector);
+                if ($value !== '') {
+                  $entry[$sub_key] = $value;
+                }
               }
             }
             // Typed relation contributors: type varies per value via the
             // field's own rel_type property, same as the top-level
             // "contributor" field.
-            if (!empty($ri['typed_contributors']) && $this->entity->hasField($ri['typed_contributors'])) {
-              $entity_field = $this->entity->get($ri['typed_contributors']);
-              if (!$entity_field->isEmpty()) {
-                $typedContributors = [];
-                foreach ($entity_field->getValue() as $field_item) {
-                  if (!array_key_exists('target_id', $field_item)) {
-                    continue;
-                  }
-                  $term = Term::load($field_item['target_id']);
-                  if (!$term) {
-                    continue;
-                  }
-                  $typedContributor = [
-                    'value' => $term->label(),
-                    'rel_type' => $field_item['rel_type'] ?? '',
-                  ];
-                  if ($term->hasField('field_orcid') && !$term->get('field_orcid')->isEmpty()) {
-                    $typedContributor['orcid'] = $term->get('field_orcid')->uri;
-                  }
-                  $typedContributors[] = $typedContributor;
-                }
-                if (!empty($typedContributors)) {
-                  $entry['typed_contributors'] = $typedContributors;
-                }
+            if (!empty($ri['typed_contributors'])) {
+              $typedContributors = array_filter(
+                DataciteFieldSelector::resolveValues($this->entity, $ri['typed_contributors']),
+                fn(array $item) => !empty($item['value'])
+              );
+              if (!empty($typedContributors)) {
+                $entry['typed_contributors'] = array_values($typedContributors);
               }
             }
             $relatedItems[] = $entry;
@@ -383,24 +350,10 @@ class MintDataciteDOI extends MintIdentifier {
             $data[$key] = $relatedItems;
           }
         }
-        else if ($this->entity->hasField($field)) {
-          $entity_field = $this->entity->get($field);
-          if (!$entity_field->isEmpty()) {
-            $data[$key] = $entity_field->getValue();
-            // Add data for taxonomy terms
-            foreach ($data[$key] as &$field_item) {
-              if (array_key_exists('target_id', $field_item)) {
-                $term = Term::load($field_item['target_id']);
-                $field_item['value'] = $term->label();
-                // Pull ROR and ORCID if they exist
-                if ($term && $term->hasField('field_ror') && !$term->get('field_ror')->isEmpty()) {
-                  $field_item['ror'] = $term->get('field_ror')->uri;
-                }
-                if ($term && $term->hasField('field_orcid') && !$term->get('field_orcid')->isEmpty()) {
-                  $field_item['orcid'] = $term->get('field_orcid')->uri;
-                }
-              }
-            }
+        else {
+          $values = DataciteFieldSelector::resolveValues($this->entity, $field);
+          if (!empty($values)) {
+            $data[$key] = $values;
           }
         }
       }
