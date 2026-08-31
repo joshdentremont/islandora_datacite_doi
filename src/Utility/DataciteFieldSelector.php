@@ -124,8 +124,10 @@ final class DataciteFieldSelector {
         if (!$paragraph->hasField($sub_field_name) || $paragraph->get($sub_field_name)->isEmpty()) {
           continue;
         }
-        foreach ($paragraph->get($sub_field_name)->getValue() as $item) {
-          $values[] = self::resolveTermItem($item);
+        $sub_field = $paragraph->get($sub_field_name);
+        $allowed_values = self::getAllowedValues($sub_field);
+        foreach ($sub_field->getValue() as $item) {
+          $values[] = self::resolveItem($item, $allowed_values);
         }
       }
       return $values;
@@ -138,9 +140,10 @@ final class DataciteFieldSelector {
     if ($field->isEmpty()) {
       return [];
     }
+    $allowed_values = self::getAllowedValues($field);
     $values = [];
     foreach ($field->getValue() as $item) {
-      $values[] = self::resolveTermItem($item);
+      $values[] = self::resolveItem($item, $allowed_values);
     }
     return $values;
   }
@@ -151,6 +154,32 @@ final class DataciteFieldSelector {
   public static function resolveString(EntityInterface $entity, string $selector): string {
     $values = self::resolveValues($entity, $selector);
     return $values[0]['value'] ?? '';
+  }
+
+  /**
+   * Resolves a single field item: taxonomy term references get 'value' set
+   * to the term's label (plus 'ror'/'orcid' when the term has those
+   * fields), and List (text/integer/float) field values get 'value'
+   * mapped from their stored key to its allowed-values label. Items that
+   * are neither are returned unchanged.
+   */
+  private static function resolveItem(array $item, ?array $allowed_values): array {
+    $item = self::resolveTermItem($item);
+    if ($allowed_values !== NULL && isset($item['value']) && array_key_exists($item['value'], $allowed_values)) {
+      $item['value'] = $allowed_values[$item['value']];
+    }
+    return $item;
+  }
+
+  /**
+   * Returns a List field's key => label allowed values map, or NULL if the
+   * field isn't a List (text/integer/float) field (or has no static
+   * allowed values, e.g. one populated by an allowed_values_function).
+   */
+  private static function getAllowedValues($field): ?array {
+    $storage_definition = $field->getFieldDefinition()->getFieldStorageDefinition();
+    $allowed_values = $storage_definition->getSetting('allowed_values');
+    return !empty($allowed_values) ? $allowed_values : NULL;
   }
 
   /**
@@ -225,7 +254,8 @@ final class DataciteFieldSelector {
         if (!$paragraph->hasField($sub_field_name) || $paragraph->get($sub_field_name)->isEmpty()) {
           continue;
         }
-        $item = self::resolveTermItem($paragraph->get($sub_field_name)->getValue()[0] ?? []);
+        $sub_field = $paragraph->get($sub_field_name);
+        $item = self::resolveItem($sub_field->getValue()[0] ?? [], self::getAllowedValues($sub_field));
         if (!empty($item['value'])) {
           $row[$result_key] = $item['value'];
         }
