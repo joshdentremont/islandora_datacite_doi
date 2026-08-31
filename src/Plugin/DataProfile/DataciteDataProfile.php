@@ -3,6 +3,7 @@
 namespace Drupal\islandora_datacite_doi\Plugin\DataProfile;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Markup;
 use Drupal\dgi_actions\Plugin\DataProfileBase;
 use Drupal\islandora_datacite_doi\Utility\DataciteFieldSelector;
 use Drupal\islandora_datacite_doi\Utility\DataciteVocabularies;
@@ -173,11 +174,8 @@ class DataciteDataProfile extends DataProfileBase {
 
     $name_type_options = array_combine(DataciteVocabularies::NAME_TYPES, DataciteVocabularies::NAME_TYPES);
 
-    $form['authorGroup'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Author'),
-    ];
-    $form['authorGroup']['author'] = [
+    $form['author'] = [
+      '#prefix' => Markup::create('<fieldset><legend>' . $this->t('Author') . '</legend>'),
       '#title' => $this->t('Author(s)'),
       '#description' => $this->t('Author(s) of the object. If author is a taxonomy term and the taxonomy has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
@@ -186,7 +184,8 @@ class DataciteDataProfile extends DataProfileBase {
       '#default_value' => $this->configuration['author'],
       '#required' => TRUE,
     ];
-    $form['authorGroup']['authorNameType'] = [
+    $form['authorNameType'] = [
+      '#suffix' => Markup::create('</fieldset>'),
       '#title' => $this->t('Author Name Type'),
       '#description' => $this->t('Left unset, the nameType attribute is omitted (unknown).'),
       '#type' => 'select',
@@ -399,11 +398,8 @@ class DataciteDataProfile extends DataProfileBase {
       '#limit_validation_errors' => [['data', 'contributors']],
     ];
 
-    $form['contributorGroup'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Contributor (Typed Relation)'),
-    ];
-    $form['contributorGroup']['contributor'] = [
+    $form['contributor'] = [
+      '#prefix' => Markup::create('<fieldset><legend>' . $this->t('Contributor (Typed Relation)') . '</legend>'),
       '#title' => $this->t('Contributor(s) (Typed Relation)'),
       '#description' => $this->t('Use this for a typed relation field to a person taxonomy term, where the contributor type varies per value (mapped from the field\'s relation type to a DataCite contributorType; unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
       '#type' => 'select',
@@ -411,7 +407,8 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['contributor'],
     ];
-    $form['contributorGroup']['contributorNameType'] = [
+    $form['contributorNameType'] = [
+      '#suffix' => Markup::create('</fieldset>'),
       '#title' => $this->t('Typed Relation Contributor Name Type'),
       '#description' => $this->t('Applied to every value from the Contributor(s) (Typed Relation) field above. Left unset, the nameType attribute is omitted (unknown).'),
       '#type' => 'select',
@@ -852,19 +849,15 @@ class DataciteDataProfile extends DataProfileBase {
 
     $funder_identifier_type_options = array_combine(DataciteVocabularies::FUNDER_IDENTIFIER_TYPES, DataciteVocabularies::FUNDER_IDENTIFIER_TYPES);
 
-    $form['funderGroup'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Funder(s)'),
-      '#description' => $this->t('Pick fields from within a paragraph field (e.g. "field_funder (paragraph) → field_funder_name"). All of these should come from the same paragraph field so they stay paired to the same funder.'),
-    ];
-    $form['funderGroup']['funderName'] = [
+    $form['funderName'] = [
+      '#prefix' => Markup::create('<fieldset><legend>' . $this->t('Funder(s)') . '</legend><div class="description">' . $this->t('Pick fields from within a paragraph field (e.g. "field_funder (paragraph) → field_funder_name"). All of these should come from the same paragraph field so they stay paired to the same funder.') . '</div>'),
       '#title' => $this->t('Funder Name'),
       '#type' => 'select',
       '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funderName'],
     ];
-    $form['funderGroup']['funderIdentifier'] = [
+    $form['funderIdentifier'] = [
       '#title' => $this->t('Funder Identifier'),
       '#description' => $this->t('An external identifier for the funder itself, e.g. a ROR or Crossref Funder ID.'),
       '#type' => 'select',
@@ -872,21 +865,21 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funderIdentifier'],
     ];
-    $form['funderGroup']['funderIdentifierType'] = [
+    $form['funderIdentifierType'] = [
       '#title' => $this->t('Funder Identifier Type'),
       '#type' => 'select',
       '#options' => $funder_identifier_type_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funderIdentifierType'],
     ];
-    $form['funderGroup']['funderAwardNumber'] = [
+    $form['funderAwardNumber'] = [
       '#title' => $this->t('Award Number'),
       '#type' => 'select',
       '#options' => $field_options,
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funderAwardNumber'],
     ];
-    $form['funderGroup']['funderAwardURI'] = [
+    $form['funderAwardURI'] = [
       '#title' => $this->t('Award URI'),
       '#description' => $this->t('A URI for the award selected above.'),
       '#type' => 'select',
@@ -894,7 +887,8 @@ class DataciteDataProfile extends DataProfileBase {
       '#empty_option' => $this->t('- None -'),
       '#default_value' => $this->configuration['funderAwardURI'],
     ];
-    $form['funderGroup']['funderAwardTitle'] = [
+    $form['funderAwardTitle'] = [
+      '#suffix' => Markup::create('</fieldset>'),
       '#title' => $this->t('Award Title'),
       '#type' => 'select',
       '#options' => $field_options,
@@ -967,11 +961,8 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['related_identifier_type'] ?? '',
       ];
-      $form['relatedItems'][$i]['creatorGroup'] = [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Creator'),
-      ];
-      $form['relatedItems'][$i]['creatorGroup']['creators'] = [
+      $form['relatedItems'][$i]['creators'] = [
+        '#prefix' => Markup::create('<fieldset><legend>' . $this->t('Creator') . '</legend>'),
         '#type' => 'select',
         '#title' => $this->t('Creator(s)'),
         '#description' => $this->t('Field holding the related item\'s creator(s). If the field has multiple values, each becomes a separate creator.'),
@@ -979,7 +970,8 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['creators'] ?? '',
       ];
-      $form['relatedItems'][$i]['creatorGroup']['creators_name_type'] = [
+      $form['relatedItems'][$i]['creators_name_type'] = [
+        '#suffix' => Markup::create('</fieldset>'),
         '#type' => 'select',
         '#title' => $this->t('Creator Name Type'),
         '#description' => $this->t('Applied to every value in the Creator(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
@@ -1015,18 +1007,16 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['issue'] ?? '',
       ];
-      $form['relatedItems'][$i]['numberGroup'] = [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Number'),
-      ];
-      $form['relatedItems'][$i]['numberGroup']['number'] = [
+      $form['relatedItems'][$i]['number'] = [
+        '#prefix' => Markup::create('<fieldset><legend>' . $this->t('Number') . '</legend>'),
         '#type' => 'select',
         '#title' => $this->t('Number'),
         '#options' => $field_options,
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['number'] ?? '',
       ];
-      $form['relatedItems'][$i]['numberGroup']['number_type'] = [
+      $form['relatedItems'][$i]['number_type'] = [
+        '#suffix' => Markup::create('</fieldset>'),
         '#type' => 'select',
         '#title' => $this->t('Number Type'),
         '#description' => $this->t('What kind of number is selected above, e.g. article or report number.'),
@@ -1062,11 +1052,8 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['edition'] ?? '',
       ];
-      $form['relatedItems'][$i]['contributorGroup'] = [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Contributor (Fixed Type)'),
-      ];
-      $form['relatedItems'][$i]['contributorGroup']['contributors'] = [
+      $form['relatedItems'][$i]['contributors'] = [
+        '#prefix' => Markup::create('<fieldset><legend>' . $this->t('Contributor (Fixed Type)') . '</legend>'),
         '#type' => 'select',
         '#title' => $this->t('Contributor(s)'),
         '#description' => $this->t('Field holding the related item\'s contributor(s). If the field has multiple values, each becomes a separate contributor.'),
@@ -1074,7 +1061,7 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributors'] ?? '',
       ];
-      $form['relatedItems'][$i]['contributorGroup']['contributor_type'] = [
+      $form['relatedItems'][$i]['contributor_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Contributor Type'),
         '#description' => $this->t('Contributor type applied to every value in the Contributor(s) field above.'),
@@ -1082,7 +1069,8 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributor_type'] ?? '',
       ];
-      $form['relatedItems'][$i]['contributorGroup']['contributors_name_type'] = [
+      $form['relatedItems'][$i]['contributors_name_type'] = [
+        '#suffix' => Markup::create('</fieldset>'),
         '#type' => 'select',
         '#title' => $this->t('Contributor Name Type'),
         '#description' => $this->t('Applied to every value in the Contributor(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
@@ -1090,11 +1078,8 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['contributors_name_type'] ?? '',
       ];
-      $form['relatedItems'][$i]['typedContributorGroup'] = [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Contributor (Typed Relation)'),
-      ];
-      $form['relatedItems'][$i]['typedContributorGroup']['typed_contributors'] = [
+      $form['relatedItems'][$i]['typed_contributors'] = [
+        '#prefix' => Markup::create('<fieldset><legend>' . $this->t('Contributor (Typed Relation)') . '</legend>'),
         '#type' => 'select',
         '#title' => $this->t('Contributor(s)'),
         '#description' => $this->t('A typed relation field to a person taxonomy term, where the contributor type varies per value (mapped from the field\'s relation type to a DataCite contributorType; unrecognized types fall back to "Other"). If the term has a URL field called field_orcid, that value is automatically pulled as well.'),
@@ -1102,7 +1087,8 @@ class DataciteDataProfile extends DataProfileBase {
         '#empty_option' => $this->t('- None -'),
         '#default_value' => $saved_value['typed_contributors'] ?? '',
       ];
-      $form['relatedItems'][$i]['typedContributorGroup']['typed_contributors_name_type'] = [
+      $form['relatedItems'][$i]['typed_contributors_name_type'] = [
+        '#suffix' => Markup::create('</fieldset>'),
         '#type' => 'select',
         '#title' => $this->t('Contributor Name Type'),
         '#description' => $this->t('Applied to every value in the Contributor(s) field above. Left unset, the nameType attribute is omitted (unknown).'),
@@ -1556,20 +1542,9 @@ class DataciteDataProfile extends DataProfileBase {
    * Extracts the related item sub-field values from a submitted form item.
    */
   private function extractRelatedItemValues(array $item): array {
-    // creatorGroup/numberGroup/contributorGroup/typedContributorGroup are
-    // form-only sub-fieldsets that group a field with the type(s) that
-    // apply to it; flatten them back out so the stored configuration keeps
-    // its plain RELATED_ITEM_KEYS shape.
-    $flattened = $item;
-    unset($flattened['creatorGroup'], $flattened['numberGroup'], $flattened['contributorGroup'], $flattened['typedContributorGroup']);
-    $flattened += $item['creatorGroup'] ?? [];
-    $flattened += $item['numberGroup'] ?? [];
-    $flattened += $item['contributorGroup'] ?? [];
-    $flattened += $item['typedContributorGroup'] ?? [];
-
     $values = [];
     foreach (self::RELATED_ITEM_KEYS as $key) {
-      $values[$key] = $flattened[$key] ?? '';
+      $values[$key] = $item[$key] ?? '';
     }
     return $values;
   }
@@ -1627,8 +1602,8 @@ class DataciteDataProfile extends DataProfileBase {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-    $this->configuration['author'] = $form_state->getValue(['authorGroup', 'author']);
-    $this->configuration['authorNameType'] = $form_state->getValue(['authorGroup', 'authorNameType']);
+    $this->configuration['author'] = $form_state->getValue('author');
+    $this->configuration['authorNameType'] = $form_state->getValue('authorNameType');
     $title_count = $form_state->get('title_count') ?? 1;
     $titles = [];
     for ($i = 0; $i < $title_count; $i++) {
@@ -1656,8 +1631,8 @@ class DataciteDataProfile extends DataProfileBase {
     }
     $this->configuration['contributors'] = $contributors;
 
-    $this->configuration['contributor'] = $form_state->getValue(['contributorGroup', 'contributor']);
-    $this->configuration['contributorNameType'] = $form_state->getValue(['contributorGroup', 'contributorNameType']);
+    $this->configuration['contributor'] = $form_state->getValue('contributor');
+    $this->configuration['contributorNameType'] = $form_state->getValue('contributorNameType');
 
     $date_count = $form_state->get('date_count') ?? 1;
     $dates = [];
@@ -1724,12 +1699,12 @@ class DataciteDataProfile extends DataProfileBase {
     }
     $this->configuration['geoLocations'] = $geoLocations;
 
-    $this->configuration['funderName'] = $form_state->getValue(['funderGroup', 'funderName']);
-    $this->configuration['funderIdentifier'] = $form_state->getValue(['funderGroup', 'funderIdentifier']);
-    $this->configuration['funderIdentifierType'] = $form_state->getValue(['funderGroup', 'funderIdentifierType']);
-    $this->configuration['funderAwardNumber'] = $form_state->getValue(['funderGroup', 'funderAwardNumber']);
-    $this->configuration['funderAwardURI'] = $form_state->getValue(['funderGroup', 'funderAwardURI']);
-    $this->configuration['funderAwardTitle'] = $form_state->getValue(['funderGroup', 'funderAwardTitle']);
+    $this->configuration['funderName'] = $form_state->getValue('funderName');
+    $this->configuration['funderIdentifier'] = $form_state->getValue('funderIdentifier');
+    $this->configuration['funderIdentifierType'] = $form_state->getValue('funderIdentifierType');
+    $this->configuration['funderAwardNumber'] = $form_state->getValue('funderAwardNumber');
+    $this->configuration['funderAwardURI'] = $form_state->getValue('funderAwardURI');
+    $this->configuration['funderAwardTitle'] = $form_state->getValue('funderAwardTitle');
 
     $related_item_count = $form_state->get('related_item_count') ?? 1;
     $relatedItems = [];

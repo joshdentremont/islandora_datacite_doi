@@ -126,9 +126,14 @@ trait DataciteDOITrait {
       $missing[] = "Resource Type General";
     }
 
-    // If any of the mandatory fields are missing, log a warning and return.
+    // If any of the mandatory fields are missing, log a warning (with what
+    // was actually resolved from the data profile's field mappings, for
+    // debugging which mapping is off) and return.
     if (!empty($missing)) {
-      \Drupal::logger('islandora_datacite_doi')->warning("Could not mint DOI. Missing the following mandatory fields: " . implode(', ', $missing));
+      \Drupal::logger('islandora_datacite_doi')->warning("Could not mint DOI. Missing the following mandatory fields: @fields. Resolved field data: <pre>@data</pre>", [
+        '@fields' => implode(', ', $missing),
+        '@data' => print_r($data, TRUE),
+      ]);
       return NULL;
     }
 
