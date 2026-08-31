@@ -361,7 +361,11 @@ class MintDataciteDOI extends MintIdentifier {
             $data[$key] = $relatedItems;
           }
         }
-        else {
+        // A plain field selector is expected here; anything else (e.g. a
+        // stale array-shaped value left over in saved config from a field
+        // whose shape changed since it was configured) is skipped rather
+        // than crashing.
+        else if (is_string($field) && $field !== '') {
           $values = DataciteFieldSelector::resolveValues($this->entity, $field);
           if (!empty($values)) {
             $data[$key] = $values;
