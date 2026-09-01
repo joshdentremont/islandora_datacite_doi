@@ -355,6 +355,21 @@ class MintDataciteDOI extends MintIdentifier {
                 $entry['typed_contributors'] = array_values($typedContributors);
               }
             }
+            // Skip entries with no actual per-node content: relation_type/
+            // related_item_type are profile-level config and would always
+            // be set even when every field selector resolved to nothing
+            // on this specific node (e.g. an empty host journal field).
+            $content_keys = ['identifier_value', 'creators', 'title', 'publication_year', 'volume', 'issue', 'number', 'first_page', 'last_page', 'publisher', 'edition', 'contributors', 'typed_contributors'];
+            $has_content = FALSE;
+            foreach ($content_keys as $content_key) {
+              if (!empty($entry[$content_key])) {
+                $has_content = TRUE;
+                break;
+              }
+            }
+            if (!$has_content) {
+              continue;
+            }
             $relatedItems[] = $entry;
           }
           if (!empty($relatedItems)) {
